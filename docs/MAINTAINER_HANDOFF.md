@@ -42,7 +42,7 @@ FACE
 SIGNATURE
 ```
 
-The current unit suite contains 121 passing tests in the known-good
+The current unit suite contains 144 passing tests in the known-good
 development environment.
 
 The public-tree safety checker also passes.
@@ -777,7 +777,7 @@ This provides defense in depth.
 At the documentation checkpoint, the known-good suite contains:
 
 ```text
-121 passed
+144 passed
 ```
 
 The public-tree checker reports:
@@ -801,9 +801,24 @@ This is a useful baseline when diagnosing future regressions.
 
 ---
 
-# Planned Next Architecture: Review UI
+# Review Application Foundation
 
-The next major product layer is expected to be an interactive UI.
+The image review/service contract now supports:
+
+```text
+source-bound automatic analysis
+immutable plan revisions
+manual redaction additions
+explicit automatic-region removals
+deterministic reviewed export
+human-override-aware verification status
+atomic destination promotion
+```
+
+See `REVIEW_WORKFLOW.md` and ADR-0007.
+
+The next major product layer is the versioned FastAPI adapter, followed by the
+React client and the pywebview desktop host.
 
 Likely responsibilities:
 
@@ -828,8 +843,9 @@ The UI should not replace the privacy engine.
 It should produce a reviewed/configured detection plan that is then
 executed by the existing deterministic redaction pipeline.
 
-Manual removal of automatic detections should eventually be tracked as
-an explicit user override.
+Manual removal of automatic detections is tracked as an explicit user
+override. The frontend must preserve this state and must not collapse
+`verified_with_human_overrides` into an ordinary pass.
 
 ---
 
@@ -841,8 +857,8 @@ The next development stages should prioritize:
 2. stable model installation/check utilities;
 3. CI;
 4. safe audit reports;
-5. configuration objects for thresholds/margins;
-6. review-oriented UI.
+5. versioned HTTP review adapter;
+6. review-oriented web UI and offline desktop host.
 
 Do not prematurely refactor the working detector core solely for visual
 UI convenience.

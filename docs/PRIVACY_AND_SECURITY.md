@@ -194,6 +194,11 @@ This is intended to prevent sensitive information from surviving in:
 
 PDF and Word adapters may create temporary intermediate files.
 
+Reviewed image export also creates a temporary candidate beside the requested
+destination. Verification runs on that candidate and the destination is
+replaced atomically only after processing completes. A failed verifier call
+does not replace an existing destination with a partial artifact.
+
 Temporary files are removed during normal cleanup.
 
 Deletion of temporary files must not be described as guaranteed secure
@@ -281,13 +286,13 @@ reason for doing so.
 
 ## Manual Review UI
 
-A planned future UI may allow users to:
+The image review application contract allows users to:
 
 - add redaction boxes;
 - remove proposed redaction boxes;
-- modify thresholds;
-- modify safety margins;
-- select redaction styles.
+- modify safety margins.
+
+Threshold controls and alternative opaque styles remain future work.
 
 These capabilities introduce new safety requirements.
 
@@ -301,8 +306,10 @@ additional sensitive detection region.
 Removing an automatically proposed redaction creates an explicit human
 override.
 
-The application should not silently present such an artifact as
-equivalent to a fully automatic `PASSED` result.
+The application does not silently present such an artifact as equivalent to
+a fully automatic `PASSED` result. It distinguishes
+`verified_with_human_overrides` from `passed`, and remediation cannot silently
+re-add the explicitly removed region.
 
 ### Redaction styles
 

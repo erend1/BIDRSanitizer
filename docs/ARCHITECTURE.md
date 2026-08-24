@@ -557,6 +557,19 @@ multiple files.
 
 This is important for batch processing.
 
+For interactive PNG/JPEG review, the same service also exposes:
+
+```text
+analyze_image_for_review
+        ↓
+versioned ImageReviewPlan
+        ↓
+export_reviewed_image
+```
+
+The review operations reuse the same long-lived OCR, semantic, face, and
+signature providers as immediate sanitization.
+
 ---
 
 ## 17. CLI
@@ -629,31 +642,37 @@ platform-appropriate external per-user default.
 
 ---
 
-## 19. Planned UI Boundary
+## 19. Review Application and UI Boundary
 
-A future UI should be built above the service/core layers.
+The review application contract is built above the service/core layers.
+The browser UI and desktop shell remain application adapters that are not
+imported by the privacy engine.
 
 Conceptually:
 
 ```text
-UI
+React/TypeScript UI
  │
- ├── file selection
- ├── detector configuration
- ├── threshold controls
- ├── review canvas
- ├── automatic detections
- ├── manual detections
- └── redaction style
-        │
-        ▼
-    core sanitizer
+ ▼
+versioned HTTP API (planned adapter)
+ │
+ ▼
+BIDRSanitizerService
+ │
+ ├── source-bound analysis plan
+ ├── human review decisions
+ ├── deterministic reviewed export
+ └── output verification
 ```
 
 UI rendering is not equivalent to privacy redaction.
 
 Any redaction style selected by the UI must eventually produce an opaque,
 irreversible replacement in the exported artifact.
+
+The current implementation establishes the typed image review/service
+contract. FastAPI, the React client, and the pywebview desktop host will be
+added above it in later slices. See `REVIEW_WORKFLOW.md` and ADR-0007.
 
 ---
 

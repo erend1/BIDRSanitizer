@@ -38,6 +38,7 @@ mark the previous ADR as superseded.
 | ADR-0004 | Microsoft Word COM conversion strategy | Accepted |
 | ADR-0005 | Local external model storage | Accepted |
 | ADR-0006 | Verification semantics and limitations | Accepted |
+| ADR-0007 | Web UI and review application boundary | Accepted |
 
 ## Contributor expectation
 
@@ -54,3 +55,6 @@ against the ADRs before implementation:
 - verifier meaning
 - PASS semantics
 - manual removal of automatically generated masks
+- temporary sensitive preview handling
+- desktop loopback API security
+- hosted multi-user deployment

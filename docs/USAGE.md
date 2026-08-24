@@ -486,9 +486,17 @@ rather than reloading models for each document.
 
 ---
 
-# Planned UI
+# Review Application Foundation
 
-A future graphical interface is expected to provide:
+The current Python application layer supports source-bound PNG/JPEG analysis,
+immutable review revisions, manual boxes, explicit automatic-region removals,
+deterministic reviewed export, and output verification.
+
+See:
+
+`docs/REVIEW_WORKFLOW.md`
+
+The graphical interface is expected to provide:
 
 ```text
 file drag-and-drop
@@ -501,5 +509,5 @@ alternative opaque redaction styles
 final verification
 ```
 
-The UI will use the same core engine documented here rather than
+The UI will use this review/service contract rather than
 implementing an independent sanitizer.

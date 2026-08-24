@@ -69,7 +69,7 @@ python -m pytest -q
 The known-good documentation baseline contains:
 
 ```text
-121 passing tests
+144 passing tests
 ```
 
 This number will naturally grow as the project evolves.
@@ -388,6 +388,27 @@ signature verification  → active
 
 Remember that verifier success does not prove absence of detector blind
 spots.
+
+---
+
+# Review Workflow Tests
+
+The interactive image contract should cover:
+
+```text
+source hash and dimension binding
+immutable plan revisions
+stale revision rejection
+manual additions
+explicit automatic removals
+conservative override status
+remediation from original pixels
+all detectors active on every verification pass
+atomic destination preservation on failure
+```
+
+Review fixtures must remain synthetic and review objects must not retain OCR
+text or other detected PII strings.
 
 ---
 

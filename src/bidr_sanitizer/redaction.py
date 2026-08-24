@@ -2,19 +2,28 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Protocol
 
 from PIL import Image, ImageDraw
 
-from bidr_sanitizer.models import BoundingBox, Detection
+from bidr_sanitizer.models import BoundingBox
 
 
 DEFAULT_REDACTION_MARGIN = 5
 BLACK = (0, 0, 0)
 
 
+class RedactionRegion(Protocol):
+    """Any geometry-bearing object accepted by deterministic redaction."""
+
+    @property
+    def bbox(self) -> BoundingBox:
+        ...
+
+
 def redact_image(
     image: Image.Image,
-    detections: Iterable[Detection],
+    detections: Iterable[RedactionRegion],
     *,
     margin: int = DEFAULT_REDACTION_MARGIN,
 ) -> Image.Image:
@@ -51,7 +60,7 @@ def redact_image(
 def redact_image_file(
     input_path: str | Path,
     output_path: str | Path,
-    detections: Iterable[Detection],
+    detections: Iterable[RedactionRegion],
     *,
     margin: int = DEFAULT_REDACTION_MARGIN,
 ) -> Path:
