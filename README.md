@@ -1,5 +1,7 @@
 # BIDR Sanitizer
 
+[![Tests](https://github.com/erend1/BIDRSanitizer/actions/workflows/tests.yml/badge.svg)](https://github.com/erend1/BIDRSanitizer/actions/workflows/tests.yml)
+
 BIDR Sanitizer is an offline-first document privacy sanitization framework
 for detecting and irreversibly redacting sensitive information from
 institutional evidence documents.

@@ -121,3 +121,10 @@ testpaths = [
 pythonpath = [
     "src",
 ]
+
+
+[project.urls]
+Homepage = "https://github.com/erend1/BIDRSanitizer"
+Repository = "https://github.com/erend1/BIDRSanitizer"
+Issues = "https://github.com/erend1/BIDRSanitizer/issues"
+Documentation = "https://github.com/erend1/BIDRSanitizer/tree/main/docs"
