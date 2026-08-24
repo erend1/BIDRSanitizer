@@ -496,6 +496,11 @@ See:
 
 `docs/REVIEW_WORKFLOW.md`
 
+The same workflow is available through the authenticated `/api/v1` adapter.
+See:
+
+`docs/WEB_API.md`
+
 The graphical interface is expected to provide:
 
 ```text

@@ -32,7 +32,7 @@ jobs:
 
       - name: Install BIDR Sanitizer
         run: |
-          python -m pip install -e ".[all,dev]"
+          python -m pip install -e ".[all,dev,web-api]"
 
       - name: Check installed dependencies
         run: |

@@ -327,6 +327,35 @@ A decorative overlay alone is not sufficient.
 
 ---
 
+## Local Web API Boundary
+
+The `/api/v1` review adapter keeps uploaded sources, source fingerprints, and
+export files in private server-side session workspaces. JSON responses expose
+geometry and review metadata, not OCR text, detected strings, source paths, or
+original filenames.
+
+All document/session endpoints require a strong per-launch token. The adapter
+also enforces configured host and origin values, rejects cross-site browser
+requests, enables no CORS policy, disables remote-asset documentation pages,
+and marks API responses as non-cacheable.
+
+Unexpected API exceptions return a generic error. Only the exception type is
+logged at this boundary; exception messages and request/document values are not
+written to the API log.
+
+Uploads are streamed and limited by both encoded byte size and decoded image
+pixel count. Only validated PNG and JPEG files are currently accepted.
+
+The application deletes a session workspace on explicit removal and deletes
+remaining sessions on shutdown. This cleanup does not constitute guaranteed
+secure erasure.
+
+The local token and loopback boundary are not suitable hosted authentication.
+A future hosted deployment requires the separate controls described in
+ADR-0007.
+
+---
+
 ## Availability and Denial of Service
 
 ML models and high-DPI PDF rendering may consume substantial CPU and

@@ -654,7 +654,10 @@ Conceptually:
 React/TypeScript UI
  │
  ▼
-versioned HTTP API (planned adapter)
+versioned FastAPI adapter
+ │
+ ▼
+private ReviewSessionManager
  │
  ▼
 BIDRSanitizerService
@@ -670,9 +673,13 @@ UI rendering is not equivalent to privacy redaction.
 Any redaction style selected by the UI must eventually produce an opaque,
 irreversible replacement in the exported artifact.
 
-The current implementation establishes the typed image review/service
-contract. FastAPI, the React client, and the pywebview desktop host will be
-added above it in later slices. See `REVIEW_WORKFLOW.md` and ADR-0007.
+The current implementation establishes both the typed image review contract
+and its `/api/v1` FastAPI adapter. The API keeps source paths, source hashes,
+and image files in private server-side sessions and exposes geometry-only
+DTOs. Model operations are serialized through one long-lived service.
+
+The React client and pywebview desktop host remain later slices. See
+`REVIEW_WORKFLOW.md`, `WEB_API.md`, and ADR-0007.
 
 ---
 
