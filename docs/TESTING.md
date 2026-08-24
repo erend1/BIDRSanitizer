@@ -69,7 +69,7 @@ python -m pytest -q
 The known-good documentation baseline contains:
 
 ```text
-85 passing tests
+121 passing tests
 ```
 
 This number will naturally grow as the project evolves.
@@ -191,6 +191,23 @@ python -m pytest -m integration
 ---
 
 # Model Loading Test
+
+First validate the complete installed model inventory:
+
+```powershell
+bidr-models check
+```
+
+Model installer unit tests use synthetic byte payloads and a fake
+downloader. They cover manifest validation, hash failure, staging,
+promotion, idempotency, repair, locking, path safety, and the packaged
+GLiNER tokenizer assets without network access.
+
+Release acceptance should additionally test a real installation into an
+empty temporary model root. Clear or redirect Hugging Face caches, block
+network access after installation, and initialize every adapter. This
+ensures GLiNER does not accidentally rely on a pre-existing global
+mDeBERTa tokenizer cache.
 
 A useful Paddle smoke test is:
 

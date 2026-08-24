@@ -64,10 +64,19 @@ TXT files use character-span detection and replace sensitive values with
 
 Machine-learning models are installed locally.
 
+After installing the complete runtime, retrieve the pinned model assets
+with an explicit command:
+
+```powershell
+bidr-models install
+bidr-models check
+```
+
 After model installation, normal inference is designed to operate without
 sending document contents to hosted AI services.
 
-Model files are not stored in this Git repository.
+Model files are not stored in this Git repository or Python wheel.
+Normal sanitization never invokes the installer.
 
 See:
 
@@ -86,15 +95,24 @@ Human review remains recommended for high-risk documents.
 
 ## Installation
 
-Detailed installation documentation is being prepared in:
+Install the complete runtime for local use:
+
+```powershell
+python -m pip install "bidr-sanitizer[all]"
+bidr-models install
+bidr-models check
+```
+
+Detailed installation documentation is available in:
 
 `docs/INSTALLATION.md`
 
 ## Usage
 
-The project provides both a Python API and command-line interface.
+The project provides Python APIs and command-line interfaces for
+sanitization and explicit model management.
 
-Detailed examples will be provided in:
+Detailed examples are available in:
 
 `docs/USAGE.md`
 

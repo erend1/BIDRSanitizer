@@ -27,10 +27,31 @@ The expected structure is:
     │   └── latin_PP-OCRv5_mobile_rec/
     ├── gliner/
     │   └── gliner_multi_pii_v1/
+    │       ├── gliner_config.json
+    │       ├── pytorch_model.bin
+    │       ├── config.json
+    │       ├── spm.model
+    │       └── tokenizer_config.json
     ├── yunet/
     │   └── face_detection_yunet_2023mar.onnx
     └── signature/
         └── yolos-small-signature-detection/
+
+Install the complete pinned model set explicitly with:
+
+```powershell
+bidr-models install
+```
+
+Verify it with:
+
+```powershell
+bidr-models check
+```
+
+Installation downloads approximately 1.38 GB of verified model data.
+The command stages each model, validates required file sizes and SHA-256
+hashes, and only then promotes it into the runtime path.
 
 ## Custom model directory
 
@@ -43,6 +64,15 @@ PowerShell example:
 
 An explicit `BIDR_MODELS_DIR` always takes precedence over the default
 location.
+
+For a one-command override, `--models-dir` takes precedence over both:
+
+```powershell
+bidr-models install --models-dir C:\BIDRModels
+```
+
+When a custom directory is used, normal sanitizer processes must resolve
+the same location through `BIDR_MODELS_DIR`.
 
 On Windows, an ASCII-only model path is recommended because some native
 inference backends may not reliably handle non-ASCII model paths.
@@ -59,6 +89,10 @@ This directory is separate from the required model files.
 ## Offline behavior
 
 Model installation and runtime inference are separate operations.
+
+Only the explicit `bidr-models install` command is allowed to retrieve
+model artifacts from the network. The `bidr-sanitize` command and Python
+sanitization APIs never invoke the installer.
 
 BIDR Sanitizer does not treat a missing model as permission to
 automatically retrieve it during sanitization. If a required local model
@@ -254,6 +288,21 @@ The GLiNER adapter loads from a local path.
 
 Offline Hugging Face behavior is enabled during normal runtime.
 
+`gliner_multi_pii-v1` depends on the tokenizer and encoder
+configuration from:
+
+```text
+microsoft/mdeberta-v3-base
+```
+
+The installer places the pinned DeBERTa configuration, tokenizer
+configuration, and SentencePiece model directly in the GLiNER model
+directory. At load time, the adapter injects the local encoder
+configuration in memory and points tokenization at that same directory.
+The downloaded files remain unchanged and hash-verifiable. This is
+required so that a clean machine does not depend on an unrelated global
+Hugging Face cache.
+
 If the model directory is absent, initialization should fail rather than
 fetching a model automatically.
 
@@ -270,7 +319,9 @@ microsoft/mdeberta-v3-base
 and an incorrect regex pattern.
 
 The warning has not prevented correct operation in the known-good
-development environment.
+development environment. With the current pinned stack, the unmodified
+tokenizer matches the canonical slow-tokenizer output for representative
+inputs; applying the suggested Mistral-specific flag changes that output.
 
 Do not upgrade Transformers or modify tokenizer behavior solely to
 silence the warning without regression testing the semantic detector.
@@ -389,7 +440,19 @@ application exits
 
 ## Model Verification
 
-After installing models, verify at least the Paddle stack:
+After installing models, verify every required file and checksum:
+
+```powershell
+bidr-models check
+```
+
+For a faster existence-and-size diagnostic:
+
+```powershell
+bidr-models check --quick
+```
+
+Then verify at least the Paddle stack:
 
 ```powershell
 python -c "from bidr_sanitizer.ocr.paddle_adapter import PaddleOCRAdapter; PaddleOCRAdapter(); print('External Paddle models OK')"
@@ -416,47 +479,50 @@ It should also include rotated faces and varied signatures.
 
 ## Model Manifest
 
-The repository contains:
+The public repository contains:
 
 ```text
 models/manifest.json
 ```
 
-This file is intended to become the machine-readable source of truth for
-model setup and diagnostics.
+The installed Python package also contains an identical packaged manifest
+resource. Tests require the public and packaged copies to remain equal.
 
-Future versions should extend the manifest with:
+The manifest is the machine-readable source of truth for:
 
 ```text
-upstream revision
+immutable upstream revision
 required filenames
-download source
-checksums
+download repository
+file sizes
+SHA-256 checksums
 license metadata
 ```
 
-Model-download/setup utilities should consume the manifest rather than
-hard-code model information independently.
+The installer and checker consume this manifest rather than hard-coding
+model information independently.
 
 ---
 
-## Future Model Setup Utility
+## Model Setup Utility
 
-A future supported installation workflow is expected to provide commands
-such as:
-
-```powershell
-python scripts\setup_models.py --models-dir C:\BIDRModels
-```
-
-and:
+Supported commands are:
 
 ```powershell
-python scripts\check_models.py
+bidr-models install
+bidr-models check
 ```
 
-Until those utilities are finalized, model installation is an explicit
-deployment step.
+An existing valid model is skipped. An incomplete or corrupt final model
+directory is not replaced implicitly. Repair must be explicitly requested:
+
+```powershell
+bidr-models install --repair
+```
+
+Downloads occur in a hidden staging directory. A model becomes visible at
+its final runtime path only after full integrity verification. Interrupted
+staging data can be reused by a later installation attempt.
 
 The sanitizer itself must not compensate for missing installation by
 silently downloading models during document processing.

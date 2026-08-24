@@ -7,19 +7,28 @@ BIDR Sanitizer uses several local machine-learning models.
 Model weights are intentionally **not stored in this Git repository**.
 
 
-The normal runtime model root is configured through:
+Advanced deployments may override the normal runtime model root through:
 
 
 `BIDR_MODELS_DIR`
 
 
-A recommended Windows installation path is:
+The default Windows installation path is:
 
 
-`C:\BIDRModels`
+`%LOCALAPPDATA%\BIDRSanitizer\models`
 
 
-Example layout:
+Install and verify the pinned model set with:
+
+
+```powershell
+bidr-models install
+bidr-models check
+```
+
+
+Example custom layout:
 
 
 ```text
@@ -61,8 +70,8 @@ See `docs/MODELS.md` for setup details.
 
 ### Windows path requirement
 
-For maximum compatibility with Paddle's native inference runtime,
-use an ASCII-only model path.
+For maximum compatibility with Paddle's native inference runtime, the
+resolved Windows model path must be ASCII-only.
 
 Recommended:
 
@@ -85,4 +94,10 @@ silently downloaded during normal application runtime.
 
 See manifest.json for the model inventory.
 
-A model setup/check utility will be provided under scripts/.
+`bidr-models install` is the only supported operation that downloads
+models. It uses immutable revisions from the packaged manifest, verifies
+required file sizes and SHA-256 hashes, and stages downloads before making
+them available to normal runtime.
+
+`bidr-models check` verifies the installed model set without performing a
+download.

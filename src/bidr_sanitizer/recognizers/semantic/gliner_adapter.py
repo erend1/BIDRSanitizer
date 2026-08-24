@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -12,12 +13,97 @@ from bidr_sanitizer.models import (
     TextDetection,
     TextSpan,
 )
+from bidr_sanitizer.model_check import (
+    require_local_model,
+)
 
 
 LABEL_MAPPING = {
     "person": DetectionType.PERSON,
     "address": DetectionType.ADDRESS,
 }
+
+
+_SELF_CONTAINED_FILES = (
+    "config.json",
+    "spm.model",
+    "tokenizer_config.json",
+)
+
+
+def _has_self_contained_backbone(
+    model_path: Path,
+) -> bool:
+    return all(
+        (model_path / name).is_file()
+        for name in _SELF_CONTAINED_FILES
+    )
+
+
+def _load_self_contained_gliner(
+    gliner_class: Any,
+    model_path: Path,
+) -> Any:
+    """
+    Load GLiNER without consulting a Hugging Face cache.
+
+    The upstream GLiNER config names its DeBERTa backbone by Hub ID.
+    Supplying the verified backbone configuration in memory prevents
+    Transformers from resolving that ID while leaving the installed,
+    hash-checked upstream files unchanged.
+    """
+    gliner_config = json.loads(
+        (
+            model_path
+            / "gliner_config.json"
+        ).read_text(encoding="utf-8")
+    )
+    encoder_config = json.loads(
+        (
+            model_path
+            / "config.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    if not isinstance(gliner_config, dict):
+        raise RuntimeError(
+            "Local GLiNER configuration must be a JSON object."
+        )
+
+    if not isinstance(encoder_config, dict):
+        raise RuntimeError(
+            "Local GLiNER encoder configuration must be a JSON object."
+        )
+
+    local_config = dict(gliner_config)
+    local_config["encoder_config"] = encoder_config
+    local_config["model_name"] = str(model_path)
+
+    model = gliner_class.from_config(
+        local_config,
+        backbone_from_pretrained=False,
+        map_location="cpu",
+    )
+
+    # This mirrors GLiNER 0.2.28's normal checkpoint-loading path,
+    # but starts from the fully local configuration above.
+    import torch
+
+    state_dict = torch.load(
+        model_path / "pytorch_model.bin",
+        map_location="cpu",
+        weights_only=True,
+    )
+
+    model.model.load_state_dict(
+        state_dict,
+        strict=False,
+    )
+    del state_dict
+
+    model.model.to("cpu")
+    model.eval()
+    return model
 
 
 class GLiNERPIIRecognizer:
@@ -55,7 +141,14 @@ class GLiNERPIIRecognizer:
             model_path
         ).resolve()
 
-        if not model_path.exists():
+        if model_path == GLINER_MODEL_DIR.resolve():
+            require_local_model(
+                "gliner-pii",
+                target_path=model_path,
+                verify_hashes=False,
+            )
+
+        elif not model_path.exists():
             raise FileNotFoundError(
                 "Local GLiNER model "
                 "was not found: "
@@ -64,15 +157,11 @@ class GLiNERPIIRecognizer:
 
         # Absolutely no Hugging Face network access
         # during sanitizer operation.
-        os.environ.setdefault(
-            "HF_HUB_OFFLINE",
-            "1",
-        )
-
-        os.environ.setdefault(
-            "HF_HUB_DISABLE_TELEMETRY",
-            "1",
-        )
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        os.environ[
+            "HF_HUB_DISABLE_TELEMETRY"
+        ] = "1"
 
         from gliner import GLiNER
 
@@ -84,12 +173,23 @@ class GLiNERPIIRecognizer:
             address_threshold
         )
 
-        self._model = (
-            GLiNER.from_pretrained(
-                str(model_path),
-                local_files_only=True,
+        if _has_self_contained_backbone(
+            model_path
+        ):
+            self._model = (
+                _load_self_contained_gliner(
+                    GLiNER,
+                    model_path,
+                )
             )
-        )
+
+        else:
+            self._model = (
+                GLiNER.from_pretrained(
+                    str(model_path),
+                    local_files_only=True,
+                )
+            )
 
         self._model.eval()
 

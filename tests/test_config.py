@@ -3,7 +3,7 @@ from pathlib import Path
 from bidr_sanitizer import config
 
 
-def test_explicit_model_directory_is_preferred(
+def test_explicit_windows_model_directory_is_preferred(
     monkeypatch,
 ):
     expected = Path(

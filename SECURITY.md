@@ -109,6 +109,8 @@ principles:
 - offline-first document processing
 - local model inference
 - no silent runtime model downloads
+- explicit, pinned, hash-verified model installation through a separate
+  `bidr-models install` command
 - destructive opaque visual redaction
 - separation of detection and redaction
 - image-only PDF reconstruction

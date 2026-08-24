@@ -14,6 +14,9 @@ from bidr_sanitizer.models import (
     Detection,
     DetectionType,
 )
+from bidr_sanitizer.model_check import (
+    require_local_model,
+)
 
 
 def expand_signature_bbox(
@@ -239,7 +242,14 @@ class YOLOSSignatureDetector:
             model_path
         ).resolve()
 
-        if not model_path.exists():
+        if model_path == SIGNATURE_MODEL_DIR.resolve():
+            require_local_model(
+                "signature-detection",
+                target_path=model_path,
+                verify_hashes=False,
+            )
+
+        elif not model_path.exists():
             raise FileNotFoundError(
                 "Local signature model "
                 "was not found: "
@@ -247,15 +257,11 @@ class YOLOSSignatureDetector:
             )
 
         # Enforce local/offline Hugging Face operation.
-        os.environ.setdefault(
-            "HF_HUB_OFFLINE",
-            "1",
-        )
-
-        os.environ.setdefault(
-            "HF_HUB_DISABLE_TELEMETRY",
-            "1",
-        )
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        os.environ[
+            "HF_HUB_DISABLE_TELEMETRY"
+        ] = "1"
 
         from transformers import (
             AutoImageProcessor,

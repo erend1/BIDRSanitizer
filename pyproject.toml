@@ -55,6 +55,11 @@ dev = [
 ]
 
 
+model-install = [
+    "huggingface-hub==1.28.0",
+]
+
+
 ocr = [
     "paddleocr==3.5.0",
     "paddlepaddle==3.2.2",
@@ -86,6 +91,8 @@ word = [
 
 
 all = [
+    "huggingface-hub==1.28.0",
+
     "paddleocr==3.5.0",
     "paddlepaddle==3.2.2",
 
@@ -105,11 +112,18 @@ all = [
 
 [project.scripts]
 bidr-sanitize = "bidr_sanitizer.cli:main"
+bidr-models = "bidr_sanitizer.model_cli:main"
 
 
 [tool.setuptools.packages.find]
 where = [
     "src",
+]
+
+
+[tool.setuptools.package-data]
+"bidr_sanitizer.resources" = [
+    "*.json",
 ]
 
 

@@ -11,6 +11,10 @@ from bidr_sanitizer.models import (
 )
 
 from bidr_sanitizer.image_io import read_image
+from bidr_sanitizer.config import YUNET_MODEL_PATH
+from bidr_sanitizer.model_check import (
+    require_local_model,
+)
 
 
 SUPPORTED_ROTATIONS = (0, 90, 180, 270)
@@ -349,9 +353,18 @@ class YuNetFaceDetector:
 
         self._model_path = Path(
             model_path
-        )
+        ).resolve()
 
-        if not self._model_path.exists():
+        if self._model_path == YUNET_MODEL_PATH.resolve():
+            require_local_model(
+                "yunet-face-detection",
+                target_path=(
+                    self._model_path.parent
+                ),
+                verify_hashes=False,
+            )
+
+        elif not self._model_path.exists():
             raise FileNotFoundError(
                 self._model_path
             )

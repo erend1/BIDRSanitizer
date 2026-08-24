@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from bidr_sanitizer.models import BoundingBox
+from bidr_sanitizer.model_check import (
+    require_local_model,
+)
 from bidr_sanitizer.ocr.models import OCRTextItem
 
 
@@ -89,38 +92,35 @@ class PaddleOCRAdapter:
     PaddleOCR result objects.
     """
 
-    def __init__(self) -> None:        
-        if not (
-            PADDLE_DETECTION_MODEL_DIR.exists()
-        ):
-            raise FileNotFoundError(
-                "Local PaddleOCR detection model ",
-                "was not found: "
-                f"{PADDLE_DETECTION_MODEL_DIR}"
-            )
-        
-        if not (
-            PADDLE_RECOGNITION_MODEL_DIR.exists()
-        ):
-            raise FileNotFoundError(
-                "Local PaddleOCR recognition model ",
-                "was not found: "
-                f"{PADDLE_RECOGNITION_MODEL_DIR}"
-            )
+    def __init__(self) -> None:
+        require_local_model(
+            "paddle-ocr-detection",
+            target_path=(
+                PADDLE_DETECTION_MODEL_DIR
+            ),
+            verify_hashes=False,
+        )
+
+        require_local_model(
+            "paddle-ocr-recognition",
+            target_path=(
+                PADDLE_RECOGNITION_MODEL_DIR
+            ),
+            verify_hashes=False,
+        )
         
         # Disable PaddleX's remote model-source
         # connectivity check.
-        os.environ.setdefault(
-            "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK",
-            "True",
-        )
-        
+        os.environ[
+            "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"
+        ] = "True"
+
         configure_paddle_environment()
-        
+
         # Important: import AFTER setting the environment
         # variable.
         from paddleocr import PaddleOCR
-        
+
         self._ocr = PaddleOCR(
             text_detection_model_name=(
                 "PP-OCRv5_server_det"
@@ -134,11 +134,11 @@ class PaddleOCRAdapter:
             text_recognition_model_dir=str(
                 PADDLE_RECOGNITION_MODEL_DIR
             ),
-            
+
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
-            
+
             text_rec_score_thresh=0.0,
             
             device="cpu",

@@ -14,6 +14,27 @@ A graphical review UI is planned for a future release.
 The command-line interface automatically dispatches supported file types
 to the appropriate sanitization pipeline.
 
+## Model setup
+
+Model retrieval is an explicit operation separate from document
+sanitization:
+
+```powershell
+bidr-models install
+bidr-models check
+```
+
+`bidr-models install` may access the network to retrieve pinned public
+model artifacts. `bidr-sanitize` never invokes it automatically.
+
+For an ASCII-safe custom Windows model root:
+
+```powershell
+bidr-models install --models-dir C:\BIDRModels
+$env:BIDR_MODELS_DIR = "C:\BIDRModels"
+bidr-models check
+```
+
 ---
 
 ## Supported Inputs

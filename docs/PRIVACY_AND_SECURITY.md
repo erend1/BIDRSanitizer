@@ -226,6 +226,16 @@ user's Office configuration and organizational policies.
 
 Models should be installed before document processing.
 
+The separate, explicit command:
+
+```text
+bidr-models install
+```
+
+may contact the declared public model repositories. It sends model
+identifiers and pinned revisions, never user documents, OCR text, images,
+or detected values.
+
 Normal sanitizer runtime must not silently download missing models.
 
 If a required model is unavailable, the preferred behavior is to stop

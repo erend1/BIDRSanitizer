@@ -11,4 +11,6 @@ recursive-include docs *.md
 include models/README.md
 include models/manifest.json
 
+recursive-include src/bidr_sanitizer/resources *.json
+
 recursive-include scripts *.py

@@ -156,12 +156,35 @@ AutoImageProcessor requires the Torchvision library
 BIDR Sanitizer requires local model files for OCR, semantic PII
 recognition, face detection, and signature detection.
 
-On Windows, place the required models under:
+Install the pinned model set with the explicit setup command:
+
+```powershell
+bidr-models install
+```
+
+On Windows, the default destination is:
 
     %LOCALAPPDATA%\BIDRSanitizer\models
 
-No `BIDR_MODELS_DIR` environment variable is required when using the
+No `BIDR_MODELS_DIR` environment variable is required when using this
 default location.
+
+The installer downloads only the manifest-selected files from immutable
+upstream revisions. Each model is staged, checked for the expected size
+and SHA-256 hash, and promoted into its runtime path only after complete
+verification.
+
+Verify the result:
+
+```powershell
+bidr-models check
+```
+
+If only the base package was installed, add the installer dependency with:
+
+```powershell
+python -m pip install "bidr-sanitizer[model-install]"
+```
 
 See `docs/MODELS.md` for the required directory structure and exact model
 identities.
@@ -207,6 +230,14 @@ its platform-specific external default model directory.
 
 Explicit configuration is recommended for predictable deployments.
 
+The model installer can target a custom directory for one invocation:
+
+```powershell
+bidr-models install --models-dir C:\BIDRModels
+```
+
+Set `BIDR_MODELS_DIR` to the same directory before running the sanitizer.
+
 ---
 
 ## 9. Why an ASCII-Only Model Path Is Recommended on Windows
@@ -227,7 +258,8 @@ C:\BIDRModels
 resolved the problem.
 
 For Windows installations, an ASCII-only model path is therefore strongly
-recommended.
+recommended. The installer rejects a non-ASCII Windows destination before
+downloading and explains how to select an ASCII-safe custom path.
 
 ---
 

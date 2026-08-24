@@ -384,6 +384,25 @@ opt-in, separately documented features.
 
 They must never silently receive user documents.
 
+Model installation is implemented as a separate application boundary.
+Only `bidr-models install` may retrieve model artifacts. Core sanitizer,
+service, verifier, and detector modules must not import or call the
+downloader.
+
+The model inventory is declared in both:
+
+```text
+models/manifest.json
+src/bidr_sanitizer/resources/model_manifest.json
+```
+
+These copies must remain identical. Every model entry requires an
+immutable upstream revision, required files, expected sizes, SHA-256
+hashes, target directory, provider, and license.
+
+Installer unit tests must use a fake downloader and synthetic tiny files.
+Normal unit tests must not retrieve real model assets.
+
 ---
 
 # Logging

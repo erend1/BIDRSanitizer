@@ -156,6 +156,13 @@ Default Windows model location:
 
 Verify:
 
+- [ ] `bidr-models install` succeeds from an empty model root
+- [ ] `bidr-models check` verifies every required file and SHA-256 hash
+- [ ] public and packaged model manifests are identical
+- [ ] upstream model revisions are immutable commit hashes
+- [ ] GLiNER initializes offline with an empty global Hugging Face cache
+- [ ] incomplete final models require explicit `--repair`
+- [ ] failed downloads never replace an existing valid model
 - [ ] normal runtime works without `BIDR_MODELS_DIR`
 - [ ] explicit `BIDR_MODELS_DIR` override still works
 - [ ] missing models fail explicitly
@@ -221,6 +228,8 @@ Confirm:
 - [ ] GLiNER source/model licensing recorded
 - [ ] YuNet source and MIT license recorded
 - [ ] signature model source/license recorded
+- [ ] mDeBERTa tokenizer source/MIT license recorded
+- [ ] Hugging Face Hub dependency/license recorded
 - [ ] OpenCV notices recorded
 - [ ] PyTorch notices recorded
 - [ ] Transformers licensing recorded

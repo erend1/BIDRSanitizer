@@ -581,6 +581,26 @@ The planned UI should follow the same principle.
 
 Model weights are not stored in the repository.
 
+Model setup is exposed through a separate explicit command:
+
+```text
+bidr-models install
+```
+
+The installer consumes the packaged pinned manifest, downloads only the
+declared files into staging, verifies file sizes and SHA-256 hashes, and
+promotes verified model directories into the configured external root.
+The sanitization service and CLI have no path that invokes this downloader.
+
+`bidr-models check` validates the external installation independently of
+model inference.
+
+GLiNER is a special composite installation: its weights come from the
+GLiNER repository, while its tokenizer and encoder configuration come from
+the pinned mDeBERTa repository. The adapter combines those verified files
+in memory during offline initialization; it does not mutate the installed
+artifacts or consult a global model cache.
+
 `BIDR_MODELS_DIR` can explicitly define the model root.
 
 The current development environment uses:

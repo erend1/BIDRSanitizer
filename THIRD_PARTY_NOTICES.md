@@ -26,6 +26,11 @@ License: Apache-2.0
 Upstream: urchade/GLiNER  
 License: Apache-2.0
 
+### Hugging Face Hub
+
+Upstream: huggingface/huggingface_hub
+License: Apache-2.0
+
 ### Transformers
 
 Upstream: huggingface/transformers  
@@ -89,6 +94,15 @@ License: Apache-2.0
 Provider: urchade  
 License: Apache-2.0
 
+### mDeBERTa-v3-base tokenizer and configuration assets
+
+Model: microsoft/mdeberta-v3-base
+Provider: Microsoft
+License: MIT
+
+BIDR Sanitizer installs only the tokenizer files and encoder configuration
+required by GLiNER, not the separate mDeBERTa model weights.
+
 ### YuNet face detection
 
 Model: face_detection_yunet_2023mar.onnx  
@@ -104,9 +118,9 @@ License: Apache-2.0
 
 BIDR Sanitizer v0.1.0 does not redistribute model weights.
 
-Users are responsible for obtaining model assets from their upstream
-sources and complying with the applicable upstream license terms.
+The explicit `bidr-models install` command retrieves pinned assets directly
+from their upstream Hugging Face repositories. Users remain responsible
+for complying with the applicable upstream license terms.
 
-Any future automated model installer must preserve applicable license
-and attribution information and must be reviewed separately before
-release.
+The installer does not place model weights in the Python package, source
+repository, or wheel.

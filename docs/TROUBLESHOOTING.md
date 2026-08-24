@@ -3,6 +3,52 @@
 This document records known installation and runtime problems encountered
 during BIDR Sanitizer development.
 
+# Local Models Are Missing or Incomplete
+
+Run the full integrity check:
+
+```powershell
+bidr-models check
+```
+
+Install missing models explicitly:
+
+```powershell
+bidr-models install
+```
+
+If a final model directory already exists but is incomplete or corrupt,
+the installer fails without replacing it. Request transactional repair:
+
+```powershell
+bidr-models install --repair
+```
+
+Normal sanitization never performs these downloads automatically.
+
+---
+
+# GLiNER Works Only When a Hugging Face Cache Already Exists
+
+The GLiNER model requires tokenizer assets and the encoder configuration
+from `microsoft/mdeberta-v3-base`. A legacy manual installation may
+contain only `gliner_config.json` and `pytorch_model.bin`, causing
+clean-cache offline startup to fail.
+
+Run:
+
+```powershell
+bidr-models check
+bidr-models install --repair
+```
+
+The verified installation includes `config.json`, `spm.model`, and
+`tokenizer_config.json` in the GLiNER model directory. The runtime adapter
+injects the local encoder configuration in memory; it does not rewrite the
+installed, hash-checked files.
+
+---
+
 ## Dependency compatibility
 
 If a new installation begins failing after upstream dependency changes,
@@ -206,7 +252,9 @@ with an incorrect regex pattern...
 ## Current Status
 
 This warning has not prevented correct GLiNER operation in the known-good
-environment.
+environment. In the pinned stack, the unmodified tokenizer matched the
+canonical slow-tokenizer output for representative inputs; the suggested
+Mistral-specific flag did not.
 
 Do not automatically upgrade Transformers merely to silence this warning.
 

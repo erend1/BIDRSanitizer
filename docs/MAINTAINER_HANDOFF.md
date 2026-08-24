@@ -42,7 +42,7 @@ FACE
 SIGNATURE
 ```
 
-The current unit suite contains 85 passing tests in the known-good
+The current unit suite contains 121 passing tests in the known-good
 development environment.
 
 The public-tree safety checker also passes.
@@ -250,6 +250,26 @@ Loading weights: 100%
 does not necessarily indicate a download; it may simply be loading
 local weights into memory.
 
+Model setup is now provided by:
+
+```powershell
+bidr-models install
+bidr-models check
+```
+
+The installer is intentionally separate from `bidr-sanitize`. It consumes
+pinned packaged manifest data, stages downloads, verifies required file
+sizes and SHA-256 hashes, and only then promotes a model to its final path.
+
+The GLiNER repository does not itself contain its required
+`microsoft/mdeberta-v3-base` tokenizer or encoder configuration. A
+clean-cache offline diagnostic proved that relying only on the GLiNER
+repository fails. The installer therefore co-locates the pinned
+`config.json`, `spm.model`, and `tokenizer_config.json` with the GLiNER
+weights. The adapter injects `config.json` into the GLiNER configuration
+in memory so Transformers never resolves the remote backbone ID. The
+installed upstream files are not rewritten.
+
 ---
 
 # Known Transformers Warning
@@ -264,7 +284,9 @@ and an alleged incorrect regex pattern with advice related to
 `fix_mistral_regex=True`.
 
 This warning did not block GLiNER operation in the known-good
-environment.
+environment. An August 2026 comparison found that the unmodified tokenizer
+matched canonical slow-tokenizer output for representative inputs, while
+the suggested Mistral-specific flag changed it.
 
 Do not destabilize the environment by upgrading Transformers solely to
 remove this warning.
@@ -755,7 +777,7 @@ This provides defense in depth.
 At the documentation checkpoint, the known-good suite contains:
 
 ```text
-85 passed
+121 passed
 ```
 
 The public-tree checker reports:
