@@ -1,0 +1,103 @@
+name: Bug report
+description: Report a reproducible problem in BIDR Sanitizer.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem.
+
+        Do not attach real documents containing personal, confidential,
+        regulated, or sensitive information.
+
+        Use synthetic or safely redacted examples whenever possible.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of BIDR Sanitizer is affected?
+      options:
+        - CLI
+        - Image sanitization
+        - PDF sanitization
+        - DOC/DOCX sanitization
+        - TXT sanitization
+        - OCR
+        - Semantic PII detection
+        - Face detection
+        - Signature detection
+        - Verification
+        - Model configuration
+        - Packaging / installation
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: Describe what happened.
+      placeholder: |
+        Explain the observed behavior and why it appears incorrect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        Provide the smallest reproducible sequence possible.
+        Do not include private or sensitive documents.
+      placeholder: |
+        1. Install ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: Describe what you expected BIDR Sanitizer to do.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant versions and platform information.
+      placeholder: |
+        OS: Windows 11
+        Python: 3.13.x
+        bidr-sanitizer: 0.1.0
+        paddleocr: 3.5.0
+        paddlepaddle: 3.2.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: |
+        Paste only logs that do not contain personal or sensitive data.
+      render: shell
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I have not included real personal, confidential, or sensitive documents or values in this report.
+          required: true
+
+        - label: I have checked that logs and screenshots do not expose sensitive information.
+          required: true

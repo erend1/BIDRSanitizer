@@ -1,0 +1,49 @@
+{
+  "models": [
+    {
+      "id": "paddle-ocr-detection",
+      "name": "PP-OCRv5_server_det",
+      "provider": "PaddlePaddle",
+      "source": "https://huggingface.co/PaddlePaddle/PP-OCRv5_server_det",
+      "relative_path": "paddleocr/PP-OCRv5_server_det",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "id": "paddle-ocr-recognition",
+      "name": "latin_PP-OCRv5_mobile_rec",
+      "provider": "PaddlePaddle",
+      "source": "https://huggingface.co/PaddlePaddle/latin_PP-OCRv5_mobile_rec",
+      "relative_path": "paddleocr/latin_PP-OCRv5_mobile_rec",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "id": "gliner-pii",
+      "name": "gliner_multi_pii-v1",
+      "provider": "urchade",
+      "source": "https://huggingface.co/urchade/gliner_multi_pii-v1",
+      "relative_path": "gliner/gliner_multi_pii_v1",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "id": "yunet-face-detection",
+      "name": "face_detection_yunet_2023mar.onnx",
+      "provider": "OpenCV Zoo / Shiqi Yu",
+      "source": "https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet",
+      "relative_path": "yunet/face_detection_yunet_2023mar.onnx",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "id": "signature-detection",
+      "name": "yolos-small-signature-detection",
+      "provider": "mdefrance",
+      "source": "https://huggingface.co/mdefrance/yolos-small-signature-detection",
+      "relative_path": "signature/yolos-small-signature-detection",
+      "license": "Apache-2.0",
+      "bundled": false
+    }
+  ]
+}

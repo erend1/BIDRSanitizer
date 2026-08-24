@@ -1,0 +1,77 @@
+name: Feature request
+description: Suggest an improvement or new capability.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature proposals should preserve BIDR Sanitizer's privacy-first,
+        offline-first architecture.
+
+        Runtime sanitization must not silently transmit document content
+        or sensitive data to external services.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem would this feature solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you would like.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Area
+      options:
+        - Core sanitization
+        - Detection
+        - Verification
+        - CLI
+        - Future UI
+        - Model management
+        - Installation / packaging
+        - Documentation
+        - Testing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy / security considerations
+      description: |
+        Explain whether this feature changes model loading, file handling,
+        networking, temporary files, logging, redaction, or verification.
+      placeholder: |
+        Example: This feature does not send document content outside the local machine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Describe other approaches you considered.
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      options:
+        - label: The proposal does not require silent cloud processing of document content.
+          required: true
+
+        - label: The proposal does not weaken destructive redaction guarantees without making that change explicit.
+          required: true

@@ -1,0 +1,123 @@
+[build-system]
+requires = [
+    "setuptools>=77",
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "bidr-sanitizer"
+version = "0.1.0"
+description = "Offline-first document privacy sanitization framework."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+
+license = "Apache-2.0"
+license-files = [
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+]
+
+keywords = [
+    "privacy",
+    "redaction",
+    "pii",
+    "ocr",
+    "document-processing",
+    "anonymization",
+    "pdf",
+    "computer-vision",
+    "ner",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "Pillow==12.3.0",
+]
+
+
+[project.optional-dependencies]
+
+dev = [
+    "pytest==9.1.1",
+    "build>=1.2,<2",
+]
+
+
+ocr = [
+    "paddleocr==3.5.0",
+    "paddlepaddle==3.2.2",
+]
+
+
+ner = [
+    "gliner==0.2.28",
+]
+
+
+vision = [
+    "opencv-contrib-python==4.10.0.84",
+    "torch==2.13.0",
+    "torchvision==0.28.0",
+    "transformers==5.13.1",
+]
+
+
+pdf = [
+    "pypdfium2==5.13.0",
+    "reportlab==5.0.0",
+]
+
+
+word = [
+    "pywin32==312; platform_system == 'Windows'",
+]
+
+
+all = [
+    "paddleocr==3.5.0",
+    "paddlepaddle==3.2.2",
+
+    "gliner==0.2.28",
+
+    "opencv-contrib-python==4.10.0.84",
+    "torch==2.13.0",
+    "torchvision==0.28.0",
+    "transformers==5.13.1",
+
+    "pypdfium2==5.13.0",
+    "reportlab==5.0.0",
+
+    "pywin32==312; platform_system == 'Windows'",
+]
+
+
+[project.scripts]
+bidr-sanitize = "bidr_sanitizer.cli:main"
+
+
+[tool.setuptools.packages.find]
+where = [
+    "src",
+]
+
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+
+pythonpath = [
+    "src",
+]
