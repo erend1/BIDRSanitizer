@@ -124,6 +124,10 @@ The versioned local HTTP adapter is documented in:
 
 `docs/WEB_API.md`
 
+The React/TypeScript review client is documented in:
+
+`docs/WEB_CLIENT.md`
+
 ## Architecture
 
 See:

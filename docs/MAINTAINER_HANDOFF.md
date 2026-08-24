@@ -42,8 +42,8 @@ FACE
 SIGNATURE
 ```
 
-The current unit suite contains 160 passing tests in the known-good
-development environment.
+The current Python unit suite contains 160 passing tests and the web client
+contains 16 passing tests in the known-good development environment.
 
 The public-tree safety checker also passes.
 
@@ -60,6 +60,9 @@ Python       3.13.x
 PaddleOCR    3.5.0
 PaddlePaddle 3.2.2
 GLiNER       0.2.28
+Node.js      24.x
+React        19.2.8
+Vite         8.2.2
 ```
 
 Additional runtime components include:
@@ -751,6 +754,7 @@ Normal development directories such as:
 ```text
 .venv
 .pytest_cache
+node_modules
 output
 __pycache__
 ```
@@ -778,6 +782,7 @@ At the documentation checkpoint, the known-good suite contains:
 
 ```text
 160 passed
+16 web-client tests passed
 ```
 
 The public-tree checker reports:
@@ -822,26 +827,25 @@ review sessions. It streams uploads without retaining original filenames,
 keeps paths and source hashes server-side, serializes model operations, and
 cleans session workspaces on deletion/shutdown. See `WEB_API.md`.
 
-The next major product layer is the React client, followed by the pywebview
-desktop host.
-
-Likely responsibilities:
+The React client now provides:
 
 ```text
 drop/select file
       ↓
 automatic analysis
       ↓
-preview detections
+preview geometry in source-pixel coordinates
       ↓
-manual add/remove/edit
+manual add and explicit automatic removal
       ↓
-threshold/margin configuration
+margin and verification-pass configuration
       ↓
-redaction-style selection
-      ↓
-final export
+deterministic export and status-aware download
 ```
+
+See `WEB_CLIENT.md`. Detector thresholds and redaction-style selection are not
+inactive controls in the current client; they require real core/API plumbing
+and privacy evaluation before being added.
 
 The UI should not replace the privacy engine.
 
@@ -862,8 +866,8 @@ The next development stages should prioritize:
 2. stable model installation/check utilities;
 3. CI;
 4. safe audit reports;
-5. review-oriented React client;
-6. offline pywebview desktop host and packaging.
+5. offline pywebview desktop host and packaging;
+6. additional format-specific review adapters through the existing engines.
 
 Do not prematurely refactor the working detector core solely for visual
 UI convenience.

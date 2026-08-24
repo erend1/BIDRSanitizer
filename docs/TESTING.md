@@ -70,6 +70,7 @@ The known-good documentation baseline contains:
 
 ```text
 160 passing tests
+16 passing web-client tests
 ```
 
 This number will naturally grow as the project evolves.
@@ -432,6 +433,34 @@ lazy ML runtime initialization
 
 Tests use synthetic in-memory PNG/JPEG data and fake providers. They must not
 start real model inference or open a network connection.
+
+---
+
+# Web Client Tests
+
+From the repository root:
+
+```powershell
+npm --prefix web run typecheck
+npm --prefix web test
+npm --prefix web run build
+```
+
+Client tests must cover privacy-relevant presentation and coordinate behavior,
+including:
+
+```text
+display coordinates → original image pixel coordinates
+reverse/out-of-bounds manual drags → normalized/clamped boxes
+authenticated preview requests → no-store and no token in URLs
+raw upload → no original filename header or multipart metadata
+automatic removal → explicit human override
+review_required → never labeled verified safe
+plan update → expected revision and geometry-only decisions
+```
+
+Tests must use synthetic response data and image bytes. Do not place real
+document previews, PII, launch tokens, or exported evidence in client fixtures.
 
 ---
 

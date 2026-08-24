@@ -315,7 +315,7 @@ The core package should remain usable from:
 CLI
 Python API
 future desktop UI
-future web UI
+React web UI
 tests
 ```
 
@@ -324,6 +324,11 @@ redaction, and verification modules must not import it.
 
 API schemas must not expose source paths, source fingerprints, original
 filenames, OCR text, or detected PII strings. See `WEB_API.md`.
+
+The React client lives in `web/` and communicates only through the same-origin
+versioned API. It must keep launch tokens in memory, fetch sensitive previews
+as authenticated no-store blobs, and convert pointer positions back into
+original image pixel coordinates. See `WEB_CLIENT.md`.
 
 ---
 

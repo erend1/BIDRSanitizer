@@ -24,6 +24,20 @@ License: BSD-3-Clause
 FastAPI uses Starlette and Pydantic, which remain subject to their respective
 BSD-3-Clause and MIT licenses.
 
+### React and React DOM
+
+Upstream: facebook/react
+License: MIT
+
+### Vite
+
+Upstream: vitejs/vite
+License: MIT
+
+Vite, TypeScript, Vitest, Testing Library, and jsdom are used to build and test
+the static web client. Their direct and transitive packages remain subject to
+the licenses distributed with the locked npm dependencies.
+
 ### PaddleOCR
 
 Upstream: PaddlePaddle/PaddleOCR  

@@ -673,13 +673,17 @@ UI rendering is not equivalent to privacy redaction.
 Any redaction style selected by the UI must eventually produce an opaque,
 irreversible replacement in the exported artifact.
 
-The current implementation establishes both the typed image review contract
-and its `/api/v1` FastAPI adapter. The API keeps source paths, source hashes,
-and image files in private server-side sessions and exposes geometry-only
-DTOs. Model operations are serialized through one long-lived service.
+The current implementation establishes the typed image review contract, its
+`/api/v1` FastAPI adapter, and a static React/TypeScript client. The API keeps
+source paths, source hashes, and image files in private server-side sessions
+and exposes geometry-only DTOs. Model operations are serialized through one
+long-lived service.
 
-The React client and pywebview desktop host remain later slices. See
-`REVIEW_WORKFLOW.md`, `WEB_API.md`, and ADR-0007.
+The client keeps display scaling outside the plan, fetches sensitive images as
+authenticated no-store blobs, preserves explicit human overrides, and renders
+the three verification statuses without converting detector success into a
+legal guarantee. The pywebview desktop host remains a later slice. See
+`REVIEW_WORKFLOW.md`, `WEB_API.md`, `WEB_CLIENT.md`, and ADR-0007.
 
 ---
 
