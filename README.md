@@ -116,6 +116,10 @@ Detailed examples are available in:
 
 `docs/USAGE.md`
 
+The typed PNG/JPEG review application workflow is documented in:
+
+`docs/REVIEW_WORKFLOW.md`
+
 ## Architecture
 
 See:

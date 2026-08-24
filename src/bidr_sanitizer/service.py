@@ -1,6 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from bidr_sanitizer.review.models import (
+        ImageReviewPlan,
+        ImageSanitizerSettings,
+        ReviewedImageExportResult,
+    )
 
 
 IMAGE_EXTENSIONS = {
@@ -204,4 +213,53 @@ class BIDRSanitizerService:
         raise ValueError(
             "Unsupported file type: "
             f"{extension}"
+        )
+
+    def analyze_image_for_review(
+        self,
+        input_path: str | Path,
+        *,
+        settings: ImageSanitizerSettings | None = None,
+    ) -> ImageReviewPlan:
+        input_path = Path(input_path)
+        extension = input_path.suffix.lower()
+
+        if extension not in IMAGE_EXTENSIONS:
+            raise ValueError(
+                "Interactive review currently supports PNG and JPEG images; "
+                f"received: {extension or '<none>'}"
+            )
+
+        return self._get_image_sanitizer().analyze_for_review(
+            input_path,
+            settings=settings,
+        )
+
+    def export_reviewed_image(
+        self,
+        input_path: str | Path,
+        output_path: str | Path,
+        plan: ImageReviewPlan,
+    ) -> ReviewedImageExportResult:
+        input_path = Path(input_path)
+        output_path = Path(output_path)
+        input_extension = input_path.suffix.lower()
+        output_extension = output_path.suffix.lower()
+
+        if input_extension not in IMAGE_EXTENSIONS:
+            raise ValueError(
+                "Interactive review currently supports PNG and JPEG images; "
+                f"received: {input_extension or '<none>'}"
+            )
+
+        if output_extension not in IMAGE_EXTENSIONS:
+            raise ValueError(
+                "Reviewed image output must be PNG or JPEG; "
+                f"received: {output_extension or '<none>'}"
+            )
+
+        return self._get_image_sanitizer().export_reviewed(
+            input_path,
+            output_path,
+            plan,
         )

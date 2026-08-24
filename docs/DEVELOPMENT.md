@@ -255,15 +255,21 @@ with transparency.
 
 # Adding Configuration
 
-The future UI will require configurable values such as:
+The review contract currently centralizes its active image export values in
+`ImageSanitizerSettings`:
+
+```text
+redaction margin
+maximum remediation passes
+```
+
+Future UI work may require additional configurable values such as:
 
 ```text
 face threshold
 signature threshold
 GLiNER thresholds
-redaction margin
 PDF DPI
-maximum remediation passes
 redaction style
 ```
 
@@ -278,7 +284,7 @@ The default configuration should remain conservative and recall-oriented.
 
 # UI Architecture
 
-The planned UI should depend on the core sanitizer, not vice versa.
+The UI must depend on the core sanitizer, not vice versa.
 
 Preferred dependency direction:
 
@@ -314,7 +320,7 @@ tests
 
 # Review Workflow
 
-The future UI should separate:
+The implemented image review contract separates:
 
 ```text
 automatic detection
@@ -334,9 +340,8 @@ redaction.
 
 # Manual Overrides
 
-A user may eventually remove an automatic detection.
-
-That action should be represented explicitly.
+A user can remove an automatic detection. That action is represented
+explicitly in an immutable plan revision.
 
 Conceptually:
 
@@ -349,10 +354,11 @@ user_overridden = True
 action = remove
 ```
 
-An output containing explicit human overrides should not be silently
-represented as equivalent to a fully automatic verifier-approved artifact.
+An output containing an automatic removal is never represented as an
+ordinary pass. A clear verifier produces `verified_with_human_overrides`;
+a remaining detection produces `review_required`.
 
-The exact policy will be designed with the UI.
+See `REVIEW_WORKFLOW.md` for the complete contract.
 
 ---
 

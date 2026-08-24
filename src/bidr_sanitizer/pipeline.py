@@ -63,6 +63,31 @@ def detect_text_pii_in_image(
     )
 
 
+def detect_image_pii(
+    input_path: str | Path,
+    *,
+    ocr: OCRProvider,
+    semantic_recognizer: SemanticPIIRecognizer | None = None,
+    face_detector: FaceDetectorProvider | None = None,
+    signature_detector: SignatureDetectorProvider | None = None,
+) -> list[Detection]:
+    """Run every configured image detector without performing redaction."""
+
+    detections = detect_text_pii_in_image(
+        input_path,
+        ocr=ocr,
+        semantic_recognizer=semantic_recognizer,
+    )
+
+    if face_detector is not None:
+        detections.extend(face_detector.detect(input_path))
+
+    if signature_detector is not None:
+        detections.extend(signature_detector.detect(input_path))
+
+    return detections
+
+
 def sanitize_image(
     input_path: str | Path,
     output_path: str | Path,
@@ -83,25 +108,13 @@ def sanitize_image(
     if ocr is None:
         ocr = PaddleOCRAdapter()
 
-    detections = detect_text_pii_in_image(
+    detections = detect_image_pii(
         input_path,
         ocr=ocr,
         semantic_recognizer=semantic_recognizer,
+        face_detector=face_detector,
+        signature_detector=signature_detector,
     )
-
-    if face_detector is not None:
-        detections.extend(
-            face_detector.detect(
-                input_path
-            )
-        )
-    
-    if signature_detector is not None:
-        detections.extend(
-            signature_detector.detect(
-                input_path
-            )
-        )
     
     redact_image_file(
         input_path=input_path,
@@ -234,6 +247,7 @@ def sanitize_and_verify_image(
             ocr=ocr,
             semantic_recognizer=semantic_recognizer,
             face_detector=face_detector,
+            signature_detector=signature_detector,
         )
 
     return SanitizationResult(

@@ -476,9 +476,9 @@ The calling CLI or future UI should not need to reproduce this logic.
 
 ---
 
-# Future Review UI Pipeline
+# Image Review Pipeline
 
-The planned review workflow should conceptually become:
+The implemented PNG/JPEG review workflow is:
 
 ```text
 file
@@ -492,8 +492,7 @@ Detection Plan
  ▼
 interactive review
  │
- ├── add box
- ├── resize box
+ ├── add manual box
  ├── retain automatic box
  └── explicitly override/remove box
  │
@@ -519,7 +518,11 @@ and:
 human override of an automatic detection
 ```
 
-The latter should remain visible in audit/review state.
+The latter remains visible in the plan and export result. Verifier remediation
+does not silently re-add an overlapping detection of the same category.
+
+See `REVIEW_WORKFLOW.md` for source binding, revision conflicts, status
+semantics, and atomic output promotion.
 
 ---
 

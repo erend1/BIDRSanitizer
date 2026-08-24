@@ -87,11 +87,14 @@ class SequentialFakeSignatureDetector:
         self._responses = deque(
             responses
         )
+        self.calls = 0
 
     def detect(
         self,
         image_path: str | Path,
     ) -> list[Detection]:
+
+        self.calls += 1
 
         if not self._responses:
             raise RuntimeError(
@@ -394,3 +397,35 @@ def test_signature_is_redacted_and_verified(
     )
 
     assert result.passed
+
+
+def test_signature_detector_remains_active_during_remediation(tmp_path):
+    input_path = tmp_path / "input.png"
+    output_path = tmp_path / "output.png"
+    Image.new("RGB", (300, 200), color="white").save(input_path)
+
+    first_signature = Detection(
+        detection_type=DetectionType.SIGNATURE,
+        bbox=BoundingBox(20, 20, 80, 50),
+        confidence=0.9,
+    )
+    newly_found_signature = Detection(
+        detection_type=DetectionType.SIGNATURE,
+        bbox=BoundingBox(150, 120, 240, 160),
+        confidence=0.8,
+    )
+    signature_detector = SequentialFakeSignatureDetector(
+        [[first_signature], [newly_found_signature], []]
+    )
+
+    result = sanitize_and_verify_image(
+        input_path,
+        output_path,
+        ocr=SequentialFakeOCRProvider([[], [], []]),
+        signature_detector=signature_detector,
+    )
+
+    assert result.passed
+    assert result.redaction_passes == 2
+    assert newly_found_signature in result.applied_detections
+    assert signature_detector.calls == 3

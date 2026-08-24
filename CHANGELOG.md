@@ -28,3 +28,8 @@ The project follows Semantic Versioning.
 - Transactional staged model promotion and explicit repair behavior.
 - Self-contained offline GLiNER tokenizer and encoder-config installation.
 - Command-line and batch-processing foundations.
+- Accepted desktop/web UI boundary and security architecture.
+- Source-bound, revisioned PNG/JPEG review plans with manual additions and
+  explicit automatic-region removals.
+- Deterministic reviewed image export with atomic promotion, remediation, and
+  human-override-aware verification status.

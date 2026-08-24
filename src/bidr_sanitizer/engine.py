@@ -12,6 +12,15 @@ from bidr_sanitizer.pipeline import (
     SanitizationResult,
     sanitize_and_verify_image,
 )
+from bidr_sanitizer.review.image_workflow import (
+    analyze_image_for_review,
+    export_reviewed_image,
+)
+from bidr_sanitizer.review.models import (
+    ImageReviewPlan,
+    ImageSanitizerSettings,
+    ReviewedImageExportResult,
+)
 from bidr_sanitizer.recognizers.semantic.gliner_adapter import (
     GLiNERPIIRecognizer,
 )
@@ -80,4 +89,35 @@ class OfflineImageSanitizer:
             max_redaction_passes=(
                 max_redaction_passes
             ),
+        )
+
+    def analyze_for_review(
+        self,
+        input_path: str | Path,
+        *,
+        settings: ImageSanitizerSettings | None = None,
+    ) -> ImageReviewPlan:
+        return analyze_image_for_review(
+            input_path,
+            ocr=self._ocr,
+            settings=settings,
+            semantic_recognizer=self._semantic_recognizer,
+            face_detector=self._face_detector,
+            signature_detector=self._signature_detector,
+        )
+
+    def export_reviewed(
+        self,
+        input_path: str | Path,
+        output_path: str | Path,
+        plan: ImageReviewPlan,
+    ) -> ReviewedImageExportResult:
+        return export_reviewed_image(
+            input_path,
+            output_path,
+            plan,
+            ocr=self._ocr,
+            semantic_recognizer=self._semantic_recognizer,
+            face_detector=self._face_detector,
+            signature_detector=self._signature_detector,
         )
