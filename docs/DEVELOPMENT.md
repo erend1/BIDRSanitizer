@@ -51,6 +51,9 @@ src/bidr_sanitizer/
 ├── service.py
 ├── cli.py
 │
+├── review/
+├── api/
+│
 ├── ocr/
 │
 ├── recognizers/
@@ -315,6 +318,12 @@ future desktop UI
 future web UI
 tests
 ```
+
+The current FastAPI adapter lives under `bidr_sanitizer.api`. Core, detector,
+redaction, and verification modules must not import it.
+
+API schemas must not expose source paths, source fingerprints, original
+filenames, OCR text, or detected PII strings. See `WEB_API.md`.
 
 ---
 

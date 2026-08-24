@@ -40,6 +40,7 @@ forbidden = (
     "paddleocr",
     "gliner",
     "torch",
+    "fastapi",
 )
 
 loaded = [
@@ -66,6 +67,47 @@ if loaded:
 
     assert result.returncode == 0, (
         "Heavy runtime dependencies were loaded: "
+        + result.stdout
+        + result.stderr
+    )
+
+
+def test_web_api_import_does_not_initialize_ml_runtimes():
+    code = """
+import sys
+import bidr_sanitizer.api
+
+forbidden = (
+    "paddleocr",
+    "pypdfium2",
+    "gliner",
+    "torch",
+)
+
+loaded = [
+    name
+    for name in forbidden
+    if name in sys.modules
+]
+
+if loaded:
+    print(",".join(loaded))
+    raise SystemExit(1)
+"""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            code,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, (
+        "API import initialized heavy runtime dependencies: "
         + result.stdout
         + result.stderr
     )

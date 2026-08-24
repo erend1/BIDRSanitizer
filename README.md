@@ -120,6 +120,10 @@ The typed PNG/JPEG review application workflow is documented in:
 
 `docs/REVIEW_WORKFLOW.md`
 
+The versioned local HTTP adapter is documented in:
+
+`docs/WEB_API.md`
+
 ## Architecture
 
 See:

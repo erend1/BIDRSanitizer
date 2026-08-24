@@ -42,7 +42,7 @@ FACE
 SIGNATURE
 ```
 
-The current unit suite contains 144 passing tests in the known-good
+The current unit suite contains 160 passing tests in the known-good
 development environment.
 
 The public-tree safety checker also passes.
@@ -777,7 +777,7 @@ This provides defense in depth.
 At the documentation checkpoint, the known-good suite contains:
 
 ```text
-144 passed
+160 passed
 ```
 
 The public-tree checker reports:
@@ -817,8 +817,13 @@ atomic destination promotion
 
 See `REVIEW_WORKFLOW.md` and ADR-0007.
 
-The next major product layer is the versioned FastAPI adapter, followed by the
-React client and the pywebview desktop host.
+The versioned FastAPI adapter now provides private, authenticated PNG/JPEG
+review sessions. It streams uploads without retaining original filenames,
+keeps paths and source hashes server-side, serializes model operations, and
+cleans session workspaces on deletion/shutdown. See `WEB_API.md`.
+
+The next major product layer is the React client, followed by the pywebview
+desktop host.
 
 Likely responsibilities:
 
@@ -857,8 +862,8 @@ The next development stages should prioritize:
 2. stable model installation/check utilities;
 3. CI;
 4. safe audit reports;
-5. versioned HTTP review adapter;
-6. review-oriented web UI and offline desktop host.
+5. review-oriented React client;
+6. offline pywebview desktop host and packaging.
 
 Do not prematurely refactor the working detector core solely for visual
 UI convenience.

@@ -11,6 +11,19 @@ repository or Python distribution.
 
 ## Runtime software
 
+### FastAPI
+
+Upstream: fastapi/fastapi
+License: MIT
+
+### Uvicorn
+
+Upstream: Kludex/uvicorn
+License: BSD-3-Clause
+
+FastAPI uses Starlette and Pydantic, which remain subject to their respective
+BSD-3-Clause and MIT licenses.
+
 ### PaddleOCR
 
 Upstream: PaddlePaddle/PaddleOCR  
