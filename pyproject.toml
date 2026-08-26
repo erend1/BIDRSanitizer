@@ -52,6 +52,14 @@ dependencies = [
 dev = [
     "pytest==9.1.1",
     "build>=1.2,<2",
+    "fastapi==0.141.1",
+    "httpx2==2.12.0",
+]
+
+
+web-api = [
+    "fastapi==0.141.1",
+    "uvicorn==0.52.4",
 ]
 
 

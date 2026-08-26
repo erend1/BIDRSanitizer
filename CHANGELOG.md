@@ -33,3 +33,6 @@ The project follows Semantic Versioning.
   explicit automatic-region removals.
 - Deterministic reviewed image export with atomic promotion, remediation, and
   human-override-aware verification status.
+- Authenticated `/api/v1` PNG/JPEG review sessions with streamed uploads,
+  server-side sensitive state, resource limits, defensive response headers,
+  and lifecycle cleanup.

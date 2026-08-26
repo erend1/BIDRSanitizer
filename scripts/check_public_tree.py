@@ -23,6 +23,8 @@ SKIPPED_DIRECTORY_NAMES = {
     "tmp",
     "temp",
     "htmlcov",
+    "node_modules",
+    "coverage",
 }
 
 

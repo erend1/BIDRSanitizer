@@ -13,6 +13,9 @@ The web frontend and desktop shell are separate application adapters. The
 privacy contract documented here has no dependency on FastAPI, React, or a
 desktop webview.
 
+The current versioned FastAPI adapter is documented separately in
+`WEB_API.md`; it depends on this contract, not the reverse.
+
 ---
 
 ## Data Flow
