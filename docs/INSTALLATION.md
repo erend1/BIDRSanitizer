@@ -87,6 +87,15 @@ For example, if the project exposes the development/runtime extras:
 python -m pip install -e ".[all,dev]"
 ```
 
+To install the versioned HTTP adapter for a local desktop/web client:
+
+```powershell
+python -m pip install -e ".[all,web-api]"
+```
+
+The `web-api` extra adds the pinned FastAPI and Uvicorn runtime. It does not
+install a JavaScript toolchain or desktop webview.
+
 If the exact extras change in a future release, `pyproject.toml` is the
 authoritative source.
 
