@@ -1,13 +1,14 @@
-# Image Review Workflow
+# Image and PDF Review Workflow
 
 ## Purpose
 
 The review application layer lets a user inspect automatic image
 detections before BIDR Sanitizer destroys pixels in the exported artifact.
 
-The current foundation supports PNG and JPEG images. PDF, Word, and text
-review adapters will be added through the same centralized privacy engines
-rather than by moving sanitization into the UI.
+The current application supports PNG and JPEG images directly and PDF through
+a page-raster adapter. Word and text review remain future adapters. All
+formats must continue through centralized privacy engines rather than moving
+sanitization into the UI.
 
 The web frontend and desktop shell are separate application adapters. The
 privacy contract documented here has no dependency on FastAPI, React, or a
@@ -48,6 +49,12 @@ atomic destination replacement
 Preview rectangles are display-only. Only deterministic export permanently
 overwrites the source pixels represented by retained plan regions.
 
+For PDF, the private session renders every page to an image at the configured
+review DPI. Each page follows the flow above with its own source binding and
+plan revision. Export sanitizes and verifies every page, constructs a new
+image-only PDF from the generated images, and rejects a result with
+extractable text. Original PDF objects are never copied into the output.
+
 ---
 
 ## Contract Types
@@ -75,7 +82,8 @@ evaluation.
 - an original-image pixel bounding box;
 - automatic or manual provenance;
 - retain or remove action;
-- detector category and confidence when applicable.
+- detector category and confidence when applicable;
+- whether an automatic region's geometry was changed by a reviewer.
 
 It does not contain OCR text or a detected PII value.
 
@@ -106,6 +114,12 @@ Removing an automatic region is an explicit human override. Remediation does
 not silently re-add a verifier detection of the same category that overlaps
 that removal. The final verifier report remains visible to the caller.
 
+Moving or resizing an automatic region is also an explicit human override.
+The revised bounding box is still applied by deterministic export, and the
+verifier still scans the resulting artifact. Manual regions may be moved or
+resized without becoming an override because they are already explicit,
+privacy-conservative additions.
+
 Review state contains region categories and counts, not the detected strings.
 
 ---
@@ -116,8 +130,8 @@ Review state contains region categories and counts, not the detected strings.
 
 | Status | Meaning |
 | --- | --- |
-| `passed` | The configured verifier found no remaining detections and no automatic region was removed. |
-| `verified_with_human_overrides` | The verifier found no remaining detections, but at least one automatic region was explicitly removed. |
+| `passed` | The configured verifier found no remaining detections and no automatic region was removed or geometrically changed. |
+| `verified_with_human_overrides` | The verifier found no remaining detections, but at least one automatic region was removed, moved, or resized. |
 | `review_required` | The configured verifier still finds one or more detections. |
 
 The result's `passed` property is deliberately true only for ordinary

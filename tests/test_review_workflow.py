@@ -13,6 +13,7 @@ from bidr_sanitizer.review import (
     PlanSourceMismatchError,
     ReviewAction,
     ReviewDecision,
+    ReviewGeometryUpdate,
     ReviewedOutputStatus,
     RegionProvenance,
     analyze_image_for_review,
@@ -152,6 +153,42 @@ def test_revision_rejects_stale_duplicate_and_unknown_decisions(tmp_path):
             expected_revision=0,
             decisions=[ReviewDecision("auto-9999", ReviewAction.REMOVE)],
         )
+
+
+def test_automatic_geometry_update_is_revisioned_and_conservative(tmp_path):
+    input_path = tmp_path / "source.png"
+    output_path = tmp_path / "reviewed.png"
+    _white_image(input_path)
+    face = _detection(DetectionType.FACE, (10, 10, 30, 30))
+    plan = analyze_image_for_review(
+        input_path,
+        ocr=SequentialOCR([[]]),
+        face_detector=SequentialDetector([[face]]),
+        settings=ImageSanitizerSettings(redaction_margin=0),
+    )
+
+    revised = revise_image_review_plan(
+        plan,
+        expected_revision=0,
+        geometry_updates=[
+            ReviewGeometryUpdate("auto-0001", BoundingBox(15, 15, 40, 40))
+        ],
+    )
+    assert revised.revision == 1
+    assert revised.regions[0].bbox == BoundingBox(15, 15, 40, 40)
+    assert revised.regions[0].geometry_modified
+    assert revised.automatic_geometry_adjustment_count == 1
+
+    result = export_reviewed_image(
+        input_path,
+        output_path,
+        revised,
+        ocr=SequentialOCR([[]]),
+        face_detector=SequentialDetector([[]]),
+    )
+    assert result.detectors_clear
+    assert result.status is ReviewedOutputStatus.VERIFIED_WITH_HUMAN_OVERRIDES
+    assert result.automatic_geometry_adjustment_count == 1
 
 
 def test_reviewed_export_applies_retained_and_manual_regions_but_not_removal(

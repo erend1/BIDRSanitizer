@@ -290,6 +290,7 @@ The image review application contract allows users to:
 
 - add redaction boxes;
 - remove proposed redaction boxes;
+- move and resize proposed or manual redaction boxes;
 - modify safety margins.
 
 Threshold controls and alternative opaque styles remain future work.
@@ -310,6 +311,11 @@ The application does not silently present such an artifact as equivalent to
 a fully automatic `PASSED` result. It distinguishes
 `verified_with_human_overrides` from `passed`, and remediation cannot silently
 re-add the explicitly removed region.
+
+Moving or resizing an automatically proposed box is also an explicit human
+override. The adjusted geometry is source-bound, included in the immutable
+plan revision, and reported in the export receipt. Verification still runs on
+the generated output.
 
 ### Redaction styles
 
@@ -343,8 +349,11 @@ Unexpected API exceptions return a generic error. Only the exception type is
 logged at this boundary; exception messages and request/document values are not
 written to the API log.
 
-Uploads are streamed and limited by both encoded byte size and decoded image
-pixel count. Only validated PNG and JPEG files are currently accepted.
+Uploads are streamed and limited by encoded byte size and decoded page pixel
+count. Only validated PNG, JPEG, and readable unencrypted PDF files are
+accepted. PDFs are also constrained by page count and are rasterized into
+private page images before analysis. Reviewed PDF export reconstructs a new
+image-only document and checks it for extractable text.
 
 The application deletes a session workspace on explicit removal and deletes
 remaining sessions on shutdown. This cleanup does not constitute guaranteed
@@ -363,11 +372,9 @@ memory.
 
 Untrusted extremely large documents could cause resource exhaustion.
 
-Future UI/server deployments should consider:
+UI/server deployments enforce file-size, page-count, and page-pixel limits.
+Further hosted deployments should also consider:
 
-- file-size limits;
-- page-count limits;
-- image-dimension limits;
 - timeout policies;
 - worker isolation.
 

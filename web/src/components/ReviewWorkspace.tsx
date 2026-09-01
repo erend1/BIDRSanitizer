@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import {
   detectionTypes,
@@ -24,9 +24,14 @@ interface ReviewWorkspaceProps {
   regions: ReviewRegion[];
   selectedRegionId: string | null;
   hasPendingChanges: boolean;
+  hasOtherPageChanges: boolean;
   busyLabel: string | null;
+  pageNumber: number;
+  pageCount: number;
+  onPageChange: (pageNumber: number) => void;
   onSelectRegion: (regionId: string | null) => void;
   onActionChange: (regionId: string, action: "retain" | "remove") => void;
+  onRegionGeometryChange: (regionId: string, bbox: BoundingBox) => void;
   onManualRegion: (bbox: BoundingBox, detectionType: DetectionType | null) => void;
   onSave: () => void;
   onExport: () => void;
@@ -43,9 +48,14 @@ export function ReviewWorkspace({
   regions,
   selectedRegionId,
   hasPendingChanges,
+  hasOtherPageChanges,
   busyLabel,
+  pageNumber,
+  pageCount,
+  onPageChange,
   onSelectRegion,
   onActionChange,
+  onRegionGeometryChange,
   onManualRegion,
   onSave,
   onExport,
@@ -78,6 +88,9 @@ export function ReviewWorkspace({
     (region) =>
       region.provenance === "automatic" && region.action === "remove",
   ).length;
+  const geometryOverrideCount = regions.filter(
+    (region) => region.provenance === "automatic" && region.geometry_modified,
+  ).length;
   const retainedCount = regions.filter((region) => region.action === "retain").length;
 
   function addManualBox(bbox: BoundingBox) {
@@ -99,6 +112,18 @@ export function ReviewWorkspace({
     onManualRegion(bbox, manualType);
   }
 
+  useEffect(() => {
+    setCoordinates({
+      x1: 0,
+      y1: 0,
+      x2: Math.min(100, plan.image_width),
+      y2: Math.min(100, plan.image_height),
+    });
+    setCanvasNotice(null);
+    setCoordinateError(null);
+    setDrawingEnabled(false);
+  }, [plan.image_height, plan.image_width, plan.plan_id]);
+
   return (
     <main id="main" className="review-layout">
       <header className="workspace-heading">
@@ -117,13 +142,47 @@ export function ReviewWorkspace({
         </div>
       </header>
 
-      {overrideCount > 0 && (
+      {pageCount > 1 && (
+        <nav className="page-navigation" aria-label="PDF page navigation">
+          <button
+            type="button"
+            disabled={pageNumber <= 1 || busyLabel !== null}
+            onClick={() => onPageChange(pageNumber - 1)}
+          >
+            Previous page
+          </button>
+          <label>
+            PDF page
+            <select
+              value={pageNumber}
+              disabled={busyLabel !== null}
+              onChange={(event) => onPageChange(Number(event.currentTarget.value))}
+            >
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map(
+                (page) => <option key={page} value={page}>{page} / {pageCount}</option>,
+              )}
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={pageNumber >= pageCount || busyLabel !== null}
+            onClick={() => onPageChange(pageNumber + 1)}
+          >
+            Next page
+          </button>
+        </nav>
+      )}
+
+      {(overrideCount > 0 || geometryOverrideCount > 0) && (
         <div className="override-warning" role="status">
           <span aria-hidden="true">!</span>
           <p>
-            <strong>{overrideCount} human {overrideCount === 1 ? "override" : "overrides"}</strong>
-            Automatic regions marked “keep visible” will not be redacted. The export
-            cannot receive an ordinary passed status while these decisions remain.
+            <strong>{overrideCount + geometryOverrideCount} human {
+              overrideCount + geometryOverrideCount === 1 ? "override" : "overrides"
+            }</strong>
+            Moving or resizing an automatic region, or marking one “keep visible,” is
+            recorded as a human override. The export cannot receive an ordinary passed
+            status while these decisions remain.
           </p>
         </div>
       )}
@@ -186,6 +245,7 @@ export function ReviewWorkspace({
           selectedRegionId={selectedRegionId}
           drawingEnabled={drawingEnabled}
           onRegionSelect={(regionId) => onSelectRegion(regionId)}
+          onRegionGeometryChange={onRegionGeometryChange}
           onManualRegion={addManualBox}
           onShortDrag={() =>
             setCanvasNotice("Draw a box at least 2 × 2 source pixels.")
@@ -227,6 +287,13 @@ export function ReviewWorkspace({
                   <dd>{confidenceLabel(selectedRegion.confidence)}</dd>
                 </div>
               </dl>
+
+              {selectedRegion.action === "retain" && (
+                <p className="edit-region-hint">
+                  Drag the selected box to move it. Drag any corner handle to resize it.
+                  Coordinates stay in source-page pixels.
+                </p>
+              )}
 
               {selectedRegion.provenance === "automatic" ? (
                 <div className="decision-control" role="group" aria-label="Region decision">
@@ -347,7 +414,11 @@ export function ReviewWorkspace({
           Discard session
         </button>
         <span className={hasPendingChanges ? "save-state is-pending" : "save-state"} role="status">
-          {hasPendingChanges ? "Unsaved review changes" : `Plan revision ${plan.revision} saved`}
+          {hasPendingChanges
+            ? `Unsaved changes on page ${pageNumber}`
+            : hasOtherPageChanges
+            ? "Other PDF pages have unsaved changes"
+            : `Page ${pageNumber} plan revision ${plan.revision} saved`}
         </span>
         <button
           className="secondary-button"
@@ -363,7 +434,7 @@ export function ReviewWorkspace({
           disabled={busyLabel !== null}
           onClick={onExport}
         >
-          {busyLabel ?? (hasPendingChanges ? "Save & export" : "Export & verify")}
+          {busyLabel ?? ((hasPendingChanges || hasOtherPageChanges) ? "Save all & export" : "Export & verify")}
           <span aria-hidden="true">→</span>
         </button>
       </footer>

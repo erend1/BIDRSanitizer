@@ -476,9 +476,10 @@ The calling CLI or future UI should not need to reproduce this logic.
 
 ---
 
-# Image Review Pipeline
+# Image and PDF Review Pipeline
 
-The implemented PNG/JPEG review workflow is:
+The implemented PNG/JPEG review workflow is also applied independently to
+every rasterized PDF page:
 
 ```text
 file
@@ -493,6 +494,7 @@ Detection Plan
 interactive review
  │
  ├── add manual box
+ ├── move or resize box
  ├── retain automatic box
  └── explicitly override/remove box
  │
@@ -506,6 +508,10 @@ deterministic exporter
 verification
 ```
 
+After every PDF page export completes, the generated page images are embedded
+in a completely new image-only PDF and the result is checked for extractable
+text. The original PDF structure is never reused.
+
 An important distinction is required between:
 
 ```text
@@ -518,8 +524,9 @@ and:
 human override of an automatic detection
 ```
 
-The latter remains visible in the plan and export result. Verifier remediation
-does not silently re-add an overlapping detection of the same category.
+Removing or geometrically changing an automatic region remains visible in the
+plan and export result. Verifier remediation does not silently re-add an
+overlapping removed detection of the same category.
 
 See `REVIEW_WORKFLOW.md` for source binding, revision conflicts, status
 semantics, and atomic output promotion.

@@ -6,6 +6,8 @@ from urllib.parse import urlsplit
 
 DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 DEFAULT_MAX_IMAGE_PIXELS = 50_000_000
+DEFAULT_MAX_PDF_PAGES = 100
+DEFAULT_PDF_REVIEW_DPI = 300
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +19,8 @@ class WebAPISettings:
     allowed_origins: tuple[str, ...] = ()
     max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES
     max_image_pixels: int = DEFAULT_MAX_IMAGE_PIXELS
+    max_pdf_pages: int = DEFAULT_MAX_PDF_PAGES
+    pdf_review_dpi: int = DEFAULT_PDF_REVIEW_DPI
 
     def __post_init__(self) -> None:
         if (
@@ -59,7 +63,12 @@ class WebAPISettings:
             normalized_origins.append(f"{parsed.scheme}://{parsed.netloc}")
         object.__setattr__(self, "allowed_origins", tuple(normalized_origins))
 
-        for field_name in ("max_upload_bytes", "max_image_pixels"):
+        for field_name in (
+            "max_upload_bytes",
+            "max_image_pixels",
+            "max_pdf_pages",
+            "pdf_review_dpi",
+        ):
             value = getattr(self, field_name)
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
                 raise ValueError(f"{field_name} must be a positive integer.")

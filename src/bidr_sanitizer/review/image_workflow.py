@@ -21,6 +21,7 @@ from bidr_sanitizer.review.models import (
     ManualRegionRequest,
     ReviewAction,
     ReviewDecision,
+    ReviewGeometryUpdate,
     ReviewedImageExportResult,
     ReviewRegion,
     RegionProvenance,
@@ -137,6 +138,7 @@ def revise_image_review_plan(
     *,
     expected_revision: int,
     decisions: Iterable[ReviewDecision] = (),
+    geometry_updates: Iterable[ReviewGeometryUpdate] = (),
     manual_regions: Iterable[ManualRegionRequest] = (),
 ) -> ImageReviewPlan:
     """Return the next immutable plan revision after human review changes."""
@@ -158,8 +160,30 @@ def revise_image_review_plan(
         raise ValueError("Review decision references an unknown region ID.")
 
     actions = {decision.region_id: decision.action for decision in decision_items}
+    geometry_items = tuple(geometry_updates)
+    geometry_ids = [update.region_id for update in geometry_items]
+    if len(geometry_ids) != len(set(geometry_ids)):
+        raise ValueError("A review region can have only one geometry update per revision.")
+
+    unknown_geometry_ids = set(geometry_ids) - known_ids
+    if unknown_geometry_ids:
+        raise ValueError("Geometry update references an unknown region ID.")
+
+    geometries = {update.region_id: update.bbox for update in geometry_items}
     revised_regions = [
-        replace(region, action=actions.get(region.region_id, region.action))
+        replace(
+            region,
+            action=actions.get(region.region_id, region.action),
+            bbox=geometries.get(region.region_id, region.bbox),
+            geometry_modified=(
+                region.geometry_modified
+                or (
+                    region.provenance is RegionProvenance.AUTOMATIC
+                    and region.region_id in geometries
+                    and geometries[region.region_id] != region.bbox
+                )
+            ),
+        )
         for region in plan.regions
     ]
 
@@ -346,4 +370,7 @@ def export_reviewed_image(
         redaction_passes=redaction_passes,
         automatic_removal_count=plan.automatic_removal_count,
         manual_addition_count=plan.manual_addition_count,
+        automatic_geometry_adjustment_count=(
+            plan.automatic_geometry_adjustment_count
+        ),
     )

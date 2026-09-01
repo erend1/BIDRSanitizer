@@ -42,8 +42,8 @@ FACE
 SIGNATURE
 ```
 
-The current Python unit suite contains 160 passing tests and the web client
-contains 16 passing tests in the known-good development environment.
+The current Python unit suite contains 164 passing tests and the web client
+contains 22 passing tests in the known-good development environment.
 
 The public-tree safety checker also passes.
 
@@ -62,7 +62,8 @@ PaddlePaddle 3.2.2
 GLiNER       0.2.28
 Node.js      24.x
 React        19.2.8
-Vite         8.2.2
+Webpack      5.109.2
+Jest         30.4.2
 ```
 
 Additional runtime components include:
@@ -781,8 +782,8 @@ This provides defense in depth.
 At the documentation checkpoint, the known-good suite contains:
 
 ```text
-160 passed
-16 web-client tests passed
+164 passed
+22 web-client tests passed
 ```
 
 The public-tree checker reports:
@@ -815,6 +816,7 @@ source-bound automatic analysis
 immutable plan revisions
 manual redaction additions
 explicit automatic-region removals
+automatic-region geometry updates
 deterministic reviewed export
 human-override-aware verification status
 atomic destination promotion
@@ -822,9 +824,10 @@ atomic destination promotion
 
 See `REVIEW_WORKFLOW.md` and ADR-0007.
 
-The versioned FastAPI adapter now provides private, authenticated PNG/JPEG
+The versioned FastAPI adapter now provides private, authenticated PNG/JPEG/PDF
 review sessions. It streams uploads without retaining original filenames,
-keeps paths and source hashes server-side, serializes model operations, and
+renders PDFs into bounded private page images, keeps paths and source hashes
+server-side, serializes model operations, rebuilds image-only PDF exports, and
 cleans session workspaces on deletion/shutdown. See `WEB_API.md`.
 
 The React client now provides:
@@ -836,11 +839,11 @@ automatic analysis
       ↓
 preview geometry in source-pixel coordinates
       ↓
-manual add and explicit automatic removal
+manual add, box movement/resizing, and explicit automatic removal
       ↓
 margin and verification-pass configuration
       ↓
-deterministic export and status-aware download
+per-page PDF review, deterministic export, and status-aware download
 ```
 
 See `WEB_CLIENT.md`. Detector thresholds and redaction-style selection are not
@@ -852,9 +855,9 @@ The UI should not replace the privacy engine.
 It should produce a reviewed/configured detection plan that is then
 executed by the existing deterministic redaction pipeline.
 
-Manual removal of automatic detections is tracked as an explicit user
-override. The frontend must preserve this state and must not collapse
-`verified_with_human_overrides` into an ordinary pass.
+Manual removal or geometry modification of automatic detections is tracked as
+an explicit user override. The frontend must preserve this state and must not
+collapse `verified_with_human_overrides` into an ordinary pass.
 
 ---
 
@@ -867,7 +870,7 @@ The next development stages should prioritize:
 3. CI;
 4. safe audit reports;
 5. offline pywebview desktop host and packaging;
-6. additional format-specific review adapters through the existing engines.
+6. additional Word/text review adapters through the existing engines.
 
 Do not prematurely refactor the working detector core solely for visual
 UI convenience.

@@ -69,8 +69,8 @@ python -m pytest -q
 The known-good documentation baseline contains:
 
 ```text
-160 passing tests
-16 passing web-client tests
+166 passing tests
+23 passing web-client tests
 ```
 
 This number will naturally grow as the project evolves.
@@ -402,6 +402,7 @@ immutable plan revisions
 stale revision rejection
 manual additions
 explicit automatic removals
+automatic geometry updates
 conservative override status
 remediation from original pixels
 all detectors active on every verification pass
@@ -421,8 +422,10 @@ The versioned HTTP adapter should cover:
 token, host, origin, and cross-site request rejection
 non-cacheable privacy response headers
 disabled remote-asset documentation routes
-streamed upload byte and decoded-pixel limits
-media-type and image-byte validation
+streamed upload byte, decoded-pixel, and PDF page-count limits
+PNG/JPEG/PDF media-type and content validation
+multi-page PDF analysis and image-only reconstruction
+per-page revision conflict behavior
 server-side source/path/fingerprint isolation
 revision conflict behavior
 review export and binary status headers
@@ -431,7 +434,7 @@ explicit deletion and shutdown cleanup
 lazy ML runtime initialization
 ```
 
-Tests use synthetic in-memory PNG/JPEG data and fake providers. They must not
+Tests use synthetic in-memory PNG/JPEG/PDF data and fake providers. They must not
 start real model inference or open a network connection.
 
 ---
@@ -452,11 +455,14 @@ including:
 ```text
 display coordinates → original image pixel coordinates
 reverse/out-of-bounds manual drags → normalized/clamped boxes
+automatic/manual move and corner resize → bounded source-pixel boxes
 authenticated preview requests → no-store and no token in URLs
 raw upload → no original filename header or multipart metadata
+PDF upload → every page analyzed and navigable through authenticated previews
 automatic removal → explicit human override
+automatic geometry edit → explicit human override
 review_required → never labeled verified safe
-plan update → expected revision and geometry-only decisions
+plan update → page-specific expected revision, geometry updates, and decisions
 ```
 
 Tests must use synthetic response data and image bytes. Do not place real

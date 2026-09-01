@@ -4,8 +4,10 @@ import { detectionLabels, exportStatusPresentation } from "../review-labels";
 interface ExportWorkspaceProps {
   result: ReviewedExport;
   exportUrl: string | null;
+  mediaType: "image/png" | "image/jpeg" | "application/pdf";
   imageWidth: number;
   imageHeight: number;
+  pageCount: number;
   busyLabel: string | null;
   onDownload: () => void;
   onContinueReview: () => void;
@@ -16,8 +18,10 @@ interface ExportWorkspaceProps {
 export function ExportWorkspace({
   result,
   exportUrl,
+  mediaType,
   imageWidth,
   imageHeight,
+  pageCount,
   busyLabel,
   onDownload,
   onContinueReview,
@@ -26,6 +30,7 @@ export function ExportWorkspace({
 }: ExportWorkspaceProps) {
   const presentation = exportStatusPresentation(result.status);
   const remainingCount = result.remaining_detections.length;
+  const isPdf = mediaType === "application/pdf";
 
   return (
     <main id="main" className={`export-layout tone-${presentation.tone}`}>
@@ -38,21 +43,10 @@ export function ExportWorkspace({
         <p className="result-description">{presentation.description}</p>
 
         <div className="result-actions">
-          <button
-            className="primary-button"
-            type="button"
-            disabled={busyLabel !== null}
-            onClick={onDownload}
-          >
-            {busyLabel ?? presentation.downloadLabel}
-            <span aria-hidden="true">↓</span>
+          <button className="primary-button" type="button" disabled={busyLabel !== null} onClick={onDownload}>
+            {busyLabel ?? presentation.downloadLabel}<span aria-hidden="true">↓</span>
           </button>
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={busyLabel !== null}
-            onClick={onContinueReview}
-          >
+          <button className="secondary-button" type="button" disabled={busyLabel !== null} onClick={onContinueReview}>
             Continue review
           </button>
         </div>
@@ -71,13 +65,17 @@ export function ExportWorkspace({
               {result.status === "review_required" ? "Review artifact" : "Reviewed output"}
             </h2>
           </div>
-          <span>{imageWidth} × {imageHeight} px</span>
+          <span>{isPdf ? `${pageCount} PDF pages` : `${imageWidth} × ${imageHeight} px`}</span>
         </div>
         <div className="export-image-frame">
           {exportUrl === null ? (
             <div className="preview-loading" role="status">
               Output preview unavailable. The artifact can still be fetched securely.
             </div>
+          ) : isPdf ? (
+            <object data={exportUrl} type="application/pdf" aria-label="Exported image-only PDF preview">
+              The reviewed image-only PDF is ready for secure download.
+            </object>
           ) : (
             <img
               src={exportUrl}
@@ -91,20 +89,19 @@ export function ExportWorkspace({
 
       <aside className="export-receipt" aria-label="Export verification receipt">
         <div className="panel-title-row">
-          <div>
-            <p className="step-label">Geometry-only receipt</p>
-            <h2>Export summary</h2>
-          </div>
-          <span className="revision-chip">rev {result.plan_revision}</span>
+          <div><p className="step-label">Geometry-only receipt</p><h2>Export summary</h2></div>
+          <span className="revision-chip">{pageCount} page{pageCount === 1 ? "" : "s"}</span>
         </div>
 
         <dl className="receipt-stats">
           <div><dt>Applied regions</dt><dd>{result.applied_region_count}</dd></div>
-          <div><dt>Redaction passes</dt><dd>{result.redaction_passes}</dd></div>
+          <div><dt>Total redaction passes</dt><dd>{result.redaction_passes}</dd></div>
           <div><dt>Manual additions</dt><dd>{result.manual_addition_count}</dd></div>
-          <div><dt>Human overrides</dt><dd>{result.automatic_removal_count}</dd></div>
+          <div><dt>Removed auto boxes</dt><dd>{result.automatic_removal_count}</dd></div>
+          <div><dt>Adjusted auto boxes</dt><dd>{result.automatic_geometry_adjustment_count}</dd></div>
           <div><dt>Remediation detections</dt><dd>{result.remediation_detections.length}</dd></div>
           <div><dt>Remaining detections</dt><dd>{remainingCount}</dd></div>
+          {isPdf && <div><dt>Text layer empty</dt><dd>{result.text_layer_empty ? "Yes" : "No"}</dd></div>}
         </dl>
 
         {remainingCount > 0 && (
@@ -112,11 +109,10 @@ export function ExportWorkspace({
             <h3 id="remaining-heading">Remaining geometry</h3>
             <ul>
               {result.remaining_detections.map((detection, index) => (
-                <li key={`${detection.detection_type}-${detection.bbox.x1}-${detection.bbox.y1}-${index}`}>
+                <li key={`${detection.page_number}-${detection.detection_type}-${detection.bbox.x1}-${index}`}>
                   <span>{detectionLabels[detection.detection_type]}</span>
                   <small>
-                    {detection.bbox.x1}, {detection.bbox.y1} → {detection.bbox.x2},{" "}
-                    {detection.bbox.y2}
+                    Page {detection.page_number} · {detection.bbox.x1}, {detection.bbox.y1} → {detection.bbox.x2}, {detection.bbox.y2}
                   </small>
                 </li>
               ))}

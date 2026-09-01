@@ -8,7 +8,7 @@ import {
 
 import type { ImageSettings } from "../api-types";
 
-const acceptedTypes = new Set(["image/png", "image/jpeg"]);
+const acceptedTypes = new Set(["image/png", "image/jpeg", "application/pdf"]);
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) {
@@ -57,7 +57,9 @@ export function UploadWorkspace({
       return;
     }
 
-    if (!acceptedTypes.has(file.type)) {
+    const isPdfByExtension =
+      file.type === "" && file.name.toLowerCase().endsWith(".pdf");
+    if (!acceptedTypes.has(file.type) && !isPdfByExtension) {
       onInvalidFile();
       return;
     }
@@ -89,7 +91,13 @@ export function UploadWorkspace({
   const fileDescription =
     selectedFile === null
       ? null
-      : `${selectedFile.type === "image/png" ? "PNG" : "JPEG"} · ${formatBytes(selectedFile.size)}`;
+      : `${
+          selectedFile.type === "image/png"
+            ? "PNG"
+            : selectedFile.type === "image/jpeg"
+            ? "JPEG"
+            : "PDF"
+        } · ${formatBytes(selectedFile.size)}`;
 
   return (
     <main id="main" className="welcome-layout">
@@ -116,10 +124,10 @@ export function UploadWorkspace({
           <div>
             <p className="step-label">Step 01</p>
             <h2 id="upload-heading">
-              {uploadedSession ? "Image received" : "Choose an image"}
+              {uploadedSession ? "Document received" : "Choose a document"}
             </h2>
           </div>
-          <span className="format-chip">PNG · JPEG</span>
+          <span className="format-chip">PNG · JPEG · PDF</span>
         </div>
 
         {uploadedSession ? (
@@ -143,18 +151,18 @@ export function UploadWorkspace({
             <input
               id={fileInputId}
               type="file"
-              accept="image/png,image/jpeg"
+              accept="image/png,image/jpeg,application/pdf,.pdf"
               onChange={handleFileInput}
             />
             <span className="upload-symbol" aria-hidden="true">↑</span>
-            <strong>{fileDescription ?? "Drop an image here"}</strong>
+            <strong>{fileDescription ?? "Drop an image or PDF here"}</strong>
             <span>
               {fileDescription === null
                 ? "or select one from this computer"
                 : "Selected locally; its filename will not be uploaded"}
             </span>
             <span className="select-button">
-              {fileDescription === null ? "Select image" : "Choose another"}
+              {fileDescription === null ? "Select document" : "Choose another"}
             </span>
           </label>
         )}

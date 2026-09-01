@@ -36,6 +36,7 @@ export interface ReviewRegion {
   action: ReviewAction;
   detection_type: DetectionType | null;
   confidence: number | null;
+  geometry_modified: boolean;
 }
 
 export interface Detection {
@@ -60,16 +61,54 @@ export interface ReviewedExport {
   plan_revision: number;
   redaction_passes: number;
   automatic_removal_count: number;
+  automatic_geometry_adjustment_count: number;
+  manual_addition_count: number;
+  applied_region_count: number;
+  text_layer_empty: boolean | null;
+  page_count: number;
+  pages: ReviewedPageExport[];
+  page_revisions: PageRevision[];
+  remaining_detections: PageDetection[];
+  remediation_detections: PageDetection[];
+}
+
+export interface ReviewedPageExport {
+  status: ReviewedOutputStatus;
+  detectors_clear: boolean;
+  passed: boolean;
+  plan_revision: number;
+  redaction_passes: number;
+  automatic_removal_count: number;
+  automatic_geometry_adjustment_count: number;
   manual_addition_count: number;
   applied_region_count: number;
   remaining_detections: Detection[];
   remediation_detections: Detection[];
 }
 
+export interface PageDetection extends Detection {
+  page_number: number;
+}
+
+export interface PageRevision {
+  page_number: number;
+  revision: number;
+}
+
+export interface ReviewPage {
+  page_number: number;
+  image_width: number;
+  image_height: number;
+  plan: ReviewPlan | null;
+  export: ReviewedPageExport | null;
+}
+
 export interface ReviewSession {
   session_id: string;
   state: ReviewSessionState;
-  media_type: "image/png" | "image/jpeg";
+  media_type: "image/png" | "image/jpeg" | "application/pdf";
+  page_count: number;
+  pages: ReviewPage[];
   image_width: number;
   image_height: number;
   plan: ReviewPlan | null;
@@ -86,9 +125,16 @@ export interface ManualRegionRequest {
   detection_type: DetectionType | null;
 }
 
+export interface ReviewGeometryUpdate {
+  region_id: string;
+  bbox: BoundingBox;
+}
+
 export interface RevisePlanRequest {
+  page_number: number;
   expected_revision: number;
   decisions: ReviewDecision[];
+  geometry_updates: ReviewGeometryUpdate[];
   manual_regions: ManualRegionRequest[];
 }
 

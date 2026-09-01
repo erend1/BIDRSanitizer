@@ -60,6 +60,7 @@ class ReviewRegion:
     action: ReviewAction = ReviewAction.RETAIN
     detection_type: DetectionType | None = None
     confidence: float | None = None
+    geometry_modified: bool = False
 
     def __post_init__(self) -> None:
         if not self.region_id or not self.region_id.strip():
@@ -70,6 +71,14 @@ class ReviewRegion:
 
         if not isinstance(self.action, ReviewAction):
             raise TypeError("action must be a ReviewAction value.")
+
+        if not isinstance(self.geometry_modified, bool):
+            raise TypeError("geometry_modified must be a boolean.")
+
+        if self.provenance is RegionProvenance.MANUAL and self.geometry_modified:
+            raise ValueError(
+                "Manual regions cannot be marked as automatic geometry overrides."
+            )
 
         if self.detection_type is not None and not isinstance(
             self.detection_type, DetectionType
@@ -160,6 +169,15 @@ class ImageReviewPlan:
         return len(self.removed_automatic_regions)
 
     @property
+    def automatic_geometry_adjustment_count(self) -> int:
+        return sum(
+            1
+            for region in self.regions
+            if region.provenance is RegionProvenance.AUTOMATIC
+            and region.geometry_modified
+        )
+
+    @property
     def manual_addition_count(self) -> int:
         return sum(
             1
@@ -179,6 +197,19 @@ class ReviewDecision:
 
         if not isinstance(self.action, ReviewAction):
             raise TypeError("action must be a ReviewAction value.")
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewGeometryUpdate:
+    region_id: str
+    bbox: BoundingBox
+
+    def __post_init__(self) -> None:
+        if not self.region_id or not self.region_id.strip():
+            raise ValueError("region_id cannot be empty.")
+
+        if not isinstance(self.bbox, BoundingBox):
+            raise TypeError("bbox must be a BoundingBox.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,6 +238,7 @@ class ReviewedImageExportResult:
     redaction_passes: int
     automatic_removal_count: int
     manual_addition_count: int
+    automatic_geometry_adjustment_count: int = 0
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "output_path", Path(self.output_path))
@@ -227,7 +259,11 @@ class ReviewedImageExportResult:
         if self.redaction_passes < 1:
             raise ValueError("redaction_passes must be at least 1.")
 
-        if self.automatic_removal_count < 0 or self.manual_addition_count < 0:
+        if (
+            self.automatic_removal_count < 0
+            or self.manual_addition_count < 0
+            or self.automatic_geometry_adjustment_count < 0
+        ):
             raise ValueError("Review counts cannot be negative.")
 
     @property
@@ -239,7 +275,7 @@ class ReviewedImageExportResult:
         if not self.detectors_clear:
             return ReviewedOutputStatus.REVIEW_REQUIRED
 
-        if self.automatic_removal_count:
+        if self.automatic_removal_count or self.automatic_geometry_adjustment_count:
             return ReviewedOutputStatus.VERIFIED_WITH_HUMAN_OVERRIDES
 
         return ReviewedOutputStatus.PASSED

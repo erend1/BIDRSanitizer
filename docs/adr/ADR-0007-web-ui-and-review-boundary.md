@@ -140,8 +140,11 @@ future replacement format adapter.
 
 ## Simplicity constraints
 
-The first frontend will use a static Vite build, React, TypeScript,
-ordinary CSS, and native SVG for image review.
+The first frontend will use a static JavaScript build, React, TypeScript,
+ordinary CSS, and native SVG for image review. The current default build uses
+Webpack so Windows application-control policies do not have to permit an
+unsigned native bundler binding; Vite remains an optional compatibility
+toolchain. The bundler choice does not change the review or privacy boundary.
 
 The initial design will not require server-side rendering, Electron,
 Redux, a JavaScript server in production, or a Rust/Tauri shell.

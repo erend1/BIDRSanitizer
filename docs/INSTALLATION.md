@@ -131,6 +131,14 @@ python -m pip install --force-reinstall "paddlepaddle==3.2.2"
 
 Do not upgrade PaddlePaddle independently of integration testing.
 
+If `import paddle` fails because Windows Application Control blocked
+`libpaddle.pyd`, `phi.dll`, or another Paddle native component, the package
+version is not the immediate cause: Windows rejected unsigned native code.
+The web API reports this as HTTP `503` and does not analyze the document.
+Do not disable Smart App Control merely as an application workaround. Use an
+organization-approved App Control policy or a trusted build of the native
+dependency, then restart the API with a fresh launch token.
+
 ---
 
 ## 6. PyTorch and Torchvision

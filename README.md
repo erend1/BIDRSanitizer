@@ -1,6 +1,6 @@
 # BIDR Sanitizer
 
-[![Tests](https://github.com/erend1/BIDRSanitizer/actions/workflows/tests.yml/badge.svg)](https://github.com/erend1/BIDRSanitizer/actions/workflows/tests.yml)
+[![Tests](https://github.com/baturyusuf/BIDRSanitizer/actions/workflows/tests.yml/badge.svg)](https://github.com/baturyusuf/BIDRSanitizer/actions/workflows/tests.yml)
 
 BIDR Sanitizer is an offline-first document privacy sanitization framework
 for detecting and irreversibly redacting sensitive information from
@@ -116,7 +116,7 @@ Detailed examples are available in:
 
 `docs/USAGE.md`
 
-The typed PNG/JPEG review application workflow is documented in:
+The typed PNG/JPEG/PDF review application workflow is documented in:
 
 `docs/REVIEW_WORKFLOW.md`
 

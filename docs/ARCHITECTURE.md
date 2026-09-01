@@ -570,6 +570,12 @@ export_reviewed_image
 The review operations reuse the same long-lived OCR, semantic, face, and
 signature providers as immediate sanitization.
 
+Interactive PDF review is an application adapter over those same image review
+operations. The session layer renders pages, maintains one versioned plan per
+page, exports and verifies each reviewed page through
+`export_reviewed_image`, then uses the existing PDF reconstruction helpers to
+create a new image-only PDF and verify that it has no extractable text.
+
 ---
 
 ## 17. CLI
@@ -673,16 +679,18 @@ UI rendering is not equivalent to privacy redaction.
 Any redaction style selected by the UI must eventually produce an opaque,
 irreversible replacement in the exported artifact.
 
-The current implementation establishes the typed image review contract, its
-`/api/v1` FastAPI adapter, and a static React/TypeScript client. The API keeps
-source paths, source hashes, and image files in private server-side sessions
-and exposes geometry-only DTOs. Model operations are serialized through one
-long-lived service.
+The current implementation establishes the typed image review contract, a PDF
+page adapter, the `/api/v1` FastAPI adapter, and a static React/TypeScript
+client. The API keeps source paths, source hashes, PDF page images, and export
+files in private server-side sessions and exposes geometry-only DTOs. Model
+operations are serialized through one long-lived service.
 
-The client keeps display scaling outside the plan, fetches sensitive images as
-authenticated no-store blobs, preserves explicit human overrides, and renders
-the three verification statuses without converting detector success into a
-legal guarantee. The pywebview desktop host remains a later slice. See
+The client keeps display scaling outside the plan, fetches sensitive page
+images as authenticated no-store blobs, supports bounded movement and
+four-corner resizing, preserves automatic geometry changes as explicit human
+overrides, and renders the three verification statuses without converting
+detector success into a legal guarantee. The pywebview desktop host remains a
+later slice. See
 `REVIEW_WORKFLOW.md`, `WEB_API.md`, `WEB_CLIENT.md`, and ADR-0007.
 
 ---

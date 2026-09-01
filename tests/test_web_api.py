@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from PIL import Image
 import pytest
+from reportlab.pdfgen.canvas import Canvas
 
 from bidr_sanitizer.api import WebAPISettings, create_app
 from bidr_sanitizer.models import BoundingBox, Detection, DetectionType
@@ -76,6 +77,14 @@ class FailingAnalysisService(FakeReviewService):
         raise RuntimeError("SYNTHETIC_PRIVATE_ERROR_VALUE")
 
 
+class ApplicationControlBlockedService(FakeReviewService):
+    def analyze_image_for_review(self, input_path, *, settings=None):
+        raise ImportError(
+            "DLL load failed while importing private_component: "
+            "Uygulama Denetimi ilkesi bu dosyayı engelledi."
+        )
+
+
 def _png_bytes(
     *,
     size: tuple[int, int] = (100, 100),
@@ -89,6 +98,16 @@ def _png_bytes(
 def _jpeg_bytes(*, size: tuple[int, int] = (100, 100)) -> bytes:
     buffer = BytesIO()
     Image.new("RGB", size, color="white").save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def _pdf_bytes(*, page_count: int = 2) -> bytes:
+    buffer = BytesIO()
+    canvas = Canvas(buffer, pagesize=(144, 144))
+    for page_number in range(1, page_count + 1):
+        canvas.drawString(20, 100, f"Synthetic page {page_number}")
+        canvas.showPage()
+    canvas.save()
     return buffer.getvalue()
 
 
@@ -226,13 +245,39 @@ def test_api_disables_remote_asset_docs_and_sets_privacy_headers(tmp_path):
         ] == [{"BIDRLaunchToken": []}]
 
 
+def test_auth_check_rejects_stale_tokens_and_accepts_current_token(tmp_path):
+    client, app, service = _create_client(tmp_path)
+    with client:
+        missing = client.get(
+            "/api/v1/auth-check",
+            headers={"Origin": ALLOWED_ORIGIN},
+        )
+        stale = client.get(
+            "/api/v1/auth-check",
+            headers={
+                "Origin": ALLOWED_ORIGIN,
+                "X-BIDR-API-Token": "stale-token-000000000000000000000000",
+            },
+        )
+        current = client.get(
+            "/api/v1/auth-check",
+            headers=_authorized_headers(),
+        )
+
+        assert missing.status_code == 401
+        assert stale.status_code == 401
+        assert current.status_code == 204
+        assert current.content == b""
+        assert current.headers["cache-control"] == "no-store, max-age=0"
+
+
 @pytest.mark.parametrize(
     ("content", "media_type", "expected_status"),
     [
         (b"", "image/png", 400),
         (b"not an image", "image/png", 400),
         (_png_bytes(), "image/jpeg", 400),
-        (_png_bytes(), "application/pdf", 415),
+        (_png_bytes(), "application/pdf", 400),
     ],
     ids=("empty", "invalid", "mismatched", "unsupported"),
 )
@@ -279,6 +324,154 @@ def test_upload_enforces_byte_and_pixel_limits(tmp_path):
             headers=_authorized_headers(media_type="image/png"),
         )
         assert response.status_code == 400
+
+
+def test_pdf_review_session_analyzes_pages_updates_geometry_and_rebuilds_pdf(
+    tmp_path,
+):
+    from bidr_sanitizer.pdf.sanitizer import pdf_has_extractable_text
+
+    client, app, service = _create_client(tmp_path)
+    with client:
+        uploaded_response = client.post(
+            "/api/v1/review-sessions",
+            content=_pdf_bytes(page_count=2),
+            headers=_authorized_headers(media_type="application/pdf"),
+        )
+        assert uploaded_response.status_code == 201, uploaded_response.text
+        uploaded = uploaded_response.json()
+        assert uploaded["media_type"] == "application/pdf"
+        assert uploaded["page_count"] == 2
+        assert [page["page_number"] for page in uploaded["pages"]] == [1, 2]
+        session_id = uploaded["session_id"]
+
+        preview = client.get(
+            f"/api/v1/review-sessions/{session_id}/pages/2/source",
+            headers=_authorized_headers(),
+        )
+        assert preview.status_code == 200
+        assert preview.headers["content-type"].startswith("image/png")
+
+        analyzed_response = client.post(
+            f"/api/v1/review-sessions/{session_id}/analysis",
+            json={"redaction_margin": 0, "max_redaction_passes": 2},
+            headers=_authorized_headers(),
+        )
+        assert analyzed_response.status_code == 200, analyzed_response.text
+        analyzed = analyzed_response.json()
+        assert analyzed["plan"] is None
+        assert all(page["plan"] is not None for page in analyzed["pages"])
+
+        revised_response = client.patch(
+            f"/api/v1/review-sessions/{session_id}/plan",
+            json={
+                "page_number": 1,
+                "expected_revision": 0,
+                "decisions": [],
+                "geometry_updates": [
+                    {
+                        "region_id": "auto-0001",
+                        "bbox": {"x1": 12, "y1": 12, "x2": 35, "y2": 35},
+                    }
+                ],
+                "manual_regions": [],
+            },
+            headers=_authorized_headers(),
+        )
+        assert revised_response.status_code == 200, revised_response.text
+        revised = revised_response.json()
+        first_region = revised["pages"][0]["plan"]["regions"][0]
+        assert first_region["geometry_modified"] is True
+        assert first_region["bbox"] == {"x1": 12, "y1": 12, "x2": 35, "y2": 35}
+
+        incomplete_export = client.post(
+            f"/api/v1/review-sessions/{session_id}/export",
+            json={
+                "expected_revisions": [
+                    {"page_number": 1, "revision": 1},
+                ]
+            },
+            headers=_authorized_headers(),
+        )
+        assert incomplete_export.status_code == 409
+
+        export_response = client.post(
+            f"/api/v1/review-sessions/{session_id}/export",
+            json={
+                "expected_revisions": [
+                    {"page_number": 1, "revision": 1},
+                    {"page_number": 2, "revision": 0},
+                ]
+            },
+            headers=_authorized_headers(),
+        )
+        assert export_response.status_code == 200, export_response.text
+        exported = export_response.json()["export"]
+        assert exported["page_count"] == 2
+        assert exported["text_layer_empty"] is True
+        assert exported["automatic_geometry_adjustment_count"] == 1
+        assert exported["status"] == "verified_with_human_overrides"
+
+        download = client.get(
+            f"/api/v1/review-sessions/{session_id}/export",
+            headers=_authorized_headers(),
+        )
+        assert download.status_code == 200
+        assert download.headers["content-type"].startswith("application/pdf")
+        assert download.headers["x-bidr-verification-status"] == (
+            "verified_with_human_overrides"
+        )
+        output_path = tmp_path / "reviewed.pdf"
+        output_path.write_bytes(download.content)
+        assert not pdf_has_extractable_text(output_path)
+
+
+def test_pdf_upload_enforces_page_and_rendered_pixel_limits(tmp_path):
+    page_client, app, service = _create_client(
+        tmp_path / "pages",
+        settings=_settings(max_pdf_pages=1),
+    )
+    with page_client:
+        response = page_client.post(
+            "/api/v1/review-sessions",
+            content=_pdf_bytes(page_count=2),
+            headers=_authorized_headers(media_type="application/pdf"),
+        )
+        assert response.status_code == 413
+        assert response.json() == {
+            "detail": "The PDF has 2 pages; the configured maximum is 1."
+        }
+
+    pixel_client, app, service = _create_client(
+        tmp_path / "pixels",
+        settings=_settings(max_image_pixels=359_999),
+    )
+    with pixel_client:
+        response = pixel_client.post(
+            "/api/v1/review-sessions",
+            content=_pdf_bytes(page_count=1),
+            headers=_authorized_headers(media_type="application/pdf"),
+        )
+        assert response.status_code == 413
+        assert response.json() == {
+            "detail": "A rendered PDF page exceeds the configured pixel limit."
+        }
+
+
+def test_default_pdf_page_limit_accepts_an_81_page_document(tmp_path):
+    client, app, service = _create_client(
+        tmp_path,
+        settings=_settings(pdf_review_dpi=72),
+    )
+    with client:
+        response = client.post(
+            "/api/v1/review-sessions",
+            content=_pdf_bytes(page_count=81),
+            headers=_authorized_headers(media_type="application/pdf"),
+        )
+
+        assert response.status_code == 201, response.text
+        assert response.json()["page_count"] == 81
 
 
 def test_valid_jpeg_upload_uses_a_generic_server_side_name(tmp_path):
@@ -514,6 +707,31 @@ def test_unexpected_service_error_does_not_echo_internal_values(tmp_path, caplog
         assert response.headers["cache-control"] == "no-store, max-age=0"
         assert "SYNTHETIC_PRIVATE_ERROR_VALUE" not in caplog.text
         assert "RuntimeError" in caplog.text
+
+
+def test_application_control_block_returns_safe_actionable_error(tmp_path):
+    app = create_app(
+        settings=_settings(),
+        service=ApplicationControlBlockedService(),
+        workspace_root=tmp_path / "sessions",
+    )
+    with TestClient(app) as client:
+        session_id = _upload_png(client)["session_id"]
+        response = client.post(
+            f"/api/v1/review-sessions/{session_id}/analysis",
+            json={},
+            headers=_authorized_headers(),
+        )
+
+        assert response.status_code == 503
+        assert response.json() == {
+            "detail": (
+                "Windows Application Control blocked a required local analysis "
+                "component. The document was not analyzed."
+            )
+        }
+        assert "private_component" not in response.text
+        assert response.headers["cache-control"] == "no-store, max-age=0"
 
 
 def test_shutdown_removes_all_sensitive_session_files(tmp_path):

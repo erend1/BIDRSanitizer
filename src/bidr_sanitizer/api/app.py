@@ -19,7 +19,9 @@ from bidr_sanitizer.api.schemas import (
     RevisePlanRequest,
 )
 from bidr_sanitizer.api.sessions import (
+    AnalysisRuntimeUnavailableError,
     InvalidImageUploadError,
+    PDFReviewLimitExceededError,
     ReviewSessionManager,
     ReviewSessionManagerClosedError,
     ReviewSessionNotFoundError,
@@ -73,6 +75,8 @@ def create_app(
         service=service,
         max_upload_bytes=settings.max_upload_bytes,
         max_image_pixels=settings.max_image_pixels,
+        max_pdf_pages=settings.max_pdf_pages,
+        pdf_review_dpi=settings.pdf_review_dpi,
         workspace_root=workspace_root,
     )
 
@@ -154,7 +158,7 @@ def create_app(
 
     @app.exception_handler(UnsupportedUploadMediaTypeError)
     async def handle_media_type(request: Request, error: Exception):
-        return _safe_error("Only PNG and JPEG image uploads are supported.", 415)
+        return _safe_error("Only PNG, JPEG, and PDF uploads are supported.", 415)
 
     @app.exception_handler(UploadTooLargeError)
     async def handle_large_upload(request: Request, error: Exception):
@@ -162,7 +166,22 @@ def create_app(
 
     @app.exception_handler(InvalidImageUploadError)
     async def handle_invalid_image(request: Request, error: Exception):
-        return _safe_error("The upload is not a valid image.", 400)
+        return _safe_error("The upload is not a valid PNG, JPEG, or PDF document.", 400)
+
+    @app.exception_handler(PDFReviewLimitExceededError)
+    async def handle_pdf_review_limit(request: Request, error: Exception):
+        return _safe_error(str(error), 413)
+
+    @app.exception_handler(AnalysisRuntimeUnavailableError)
+    async def handle_analysis_runtime_unavailable(
+        request: Request,
+        error: Exception,
+    ):
+        return _safe_error(
+            "Windows Application Control blocked a required local analysis "
+            "component. The document was not analyzed.",
+            503,
+        )
 
     @app.exception_handler(PlanRevisionConflictError)
     async def handle_revision_conflict(request: Request, error: Exception):
@@ -184,6 +203,10 @@ def create_app(
         prefix=API_PREFIX,
         dependencies=[Depends(require_api_token)],
     )
+
+    @router.get("/auth-check", status_code=204, include_in_schema=False)
+    def auth_check() -> Response:
+        return Response(status_code=204)
 
     @router.post(
         "/review-sessions",
@@ -254,6 +277,10 @@ def create_app(
                 session_id,
                 expected_revision=request.expected_revision,
                 decisions=[decision.to_domain() for decision in request.decisions],
+                page_number=request.page_number,
+                geometry_updates=[
+                    update.to_domain() for update in request.geometry_updates
+                ],
                 manual_regions=[
                     region.to_domain() for region in request.manual_regions
                 ],
@@ -277,14 +304,20 @@ def create_app(
     ) -> ReviewSessionSchema:
         snapshot = sessions.export_session(
             session_id,
-            expected_revision=request.expected_revision,
+            expected_revisions=request.to_revision_map(),
         )
         return ReviewSessionSchema.from_snapshot(snapshot)
 
     @router.get("/review-sessions/{session_id}/source")
     def get_review_source(session_id: str) -> Response:
         content, media_type = sessions.read_source(session_id)
-        extension = "png" if media_type == "image/png" else "jpg"
+        extension = (
+            "png"
+            if media_type == "image/png"
+            else "jpg"
+            if media_type == "image/jpeg"
+            else "pdf"
+        )
         return Response(
             content=content,
             media_type=media_type,
@@ -293,10 +326,30 @@ def create_app(
             },
         )
 
+    @router.get("/review-sessions/{session_id}/pages/{page_number}/source")
+    def get_review_page_source(session_id: str, page_number: int) -> Response:
+        content, media_type = sessions.read_page_source(session_id, page_number)
+        extension = "png" if media_type == "image/png" else "jpg"
+        return Response(
+            content=content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": (
+                    f'inline; filename="BIDR_SOURCE_PAGE_{page_number:04d}.{extension}"'
+                )
+            },
+        )
+
     @router.get("/review-sessions/{session_id}/export")
     def get_review_export(session_id: str) -> Response:
         content, media_type, status = sessions.read_export(session_id)
-        extension = "png" if media_type == "image/png" else "jpg"
+        extension = (
+            "png"
+            if media_type == "image/png"
+            else "jpg"
+            if media_type == "image/jpeg"
+            else "pdf"
+        )
         return Response(
             content=content,
             media_type=media_type,

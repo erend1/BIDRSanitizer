@@ -20,7 +20,7 @@ def main() -> None:
         raise SystemExit(
             f"Set {TOKEN_ENVIRONMENT_VARIABLE} to a fresh per-launch token first."
         )
-
+    print(token)
     app = create_app(
         settings=WebAPISettings(
             api_token=token,

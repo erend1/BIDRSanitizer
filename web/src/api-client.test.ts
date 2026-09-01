@@ -31,7 +31,7 @@ describe("ReviewApiClient", () => {
 
     await client.createSession(file);
 
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     const headers = new Headers(init.headers);
     expect(url).toBe("/api/v1/review-sessions");
@@ -41,6 +41,36 @@ describe("ReviewApiClient", () => {
     expect(headers.get("Content-Disposition")).toBeNull();
     expect(init.body).toBe(file);
     expect(init.cache).toBe("no-store");
+  });
+
+  it("verifies the current launch token before treating the API as connected", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await new ReviewApiClient(token).checkAuthentication();
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/auth-check");
+    expect(new Headers(init.headers).get("X-BIDR-API-Token")).toBe(token);
+    expect(init.cache).toBe("no-store");
+    expect(init.credentials).toBe("same-origin");
+  });
+
+  it("normalizes an extension-only PDF to the PDF media type", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(syntheticSession({ media_type: "application/pdf" })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File([new Uint8Array([37, 80, 68, 70])], "private.pdf");
+
+    await new ReviewApiClient(token).createSession(file);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).get("Content-Type")).toBe("application/pdf");
+    expect(new Headers(init.headers).get("Content-Disposition")).toBeNull();
   });
 
   it("uses authenticated no-store requests for sensitive previews", async () => {

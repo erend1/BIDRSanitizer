@@ -708,11 +708,49 @@ a:focus-visible,
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem);
   grid-template-areas:
     "heading heading"
+    "pages pages"
     "warning warning"
     "canvas controls"
     "actions actions";
   gap: 1rem 1.25rem;
   align-items: start;
+}
+
+.page-navigation {
+  grid-area: pages;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.page-navigation label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.page-navigation button,
+.page-navigation select {
+  min-height: 2.2rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  color: var(--ink);
+  background: #fff;
+}
+
+.page-navigation button {
+  padding: 0 0.8rem;
+  cursor: pointer;
 }
 
 .workspace-heading {
@@ -945,7 +983,38 @@ a:focus-visible,
   fill: rgba(239, 106, 80, 0.2);
   stroke: #ed5d43;
   stroke-width: 2;
-  cursor: pointer;
+  cursor: move;
+}
+
+.review-region.is-geometry-modified rect {
+  stroke-dasharray: 10 4;
+}
+
+.resize-handle {
+  fill: #fff;
+  stroke: #103227;
+  stroke-width: 2;
+  touch-action: none;
+}
+
+.resize-handle.is-nw,
+.resize-handle.is-se {
+  cursor: nwse-resize;
+}
+
+.resize-handle.is-ne,
+.resize-handle.is-sw {
+  cursor: nesw-resize;
+}
+
+.edit-region-hint {
+  margin: 0.65rem 0;
+  padding: 0.65rem;
+  border-radius: 0.45rem;
+  color: #315c4b;
+  background: #e8f3e8;
+  font-size: 0.68rem;
+  line-height: 1.5;
 }
 
 .review-region.is-manual rect {
@@ -1414,6 +1483,13 @@ a:focus-visible,
   max-height: 66vh;
   display: block;
   object-fit: contain;
+}
+
+.export-image-frame object {
+  width: 100%;
+  height: min(70vh, 52rem);
+  border: 0;
+  background: #fff;
 }
 
 .preview-loading {

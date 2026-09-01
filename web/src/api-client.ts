@@ -1,6 +1,7 @@
 import type {
   HealthResponse,
   ImageSettings,
+  PageRevision,
   RevisePlanRequest,
   ReviewSession,
   ReviewedOutputStatus,
@@ -109,6 +110,19 @@ export class ReviewApiClient {
     this.#token = token;
   }
 
+  async checkAuthentication(): Promise<void> {
+    await expectOk(
+      await fetch(`${API_PREFIX}/auth-check`, {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          [API_TOKEN_HEADER]: this.#token,
+        },
+      }),
+    );
+  }
+
   async #requestJson<T>(
     path: string,
     init: RequestInit = {},
@@ -135,7 +149,7 @@ export class ReviewApiClient {
         cache: "no-store",
         credentials: "same-origin",
         headers: {
-          Accept: "image/png,image/jpeg",
+          Accept: "image/png,image/jpeg,application/pdf",
           [API_TOKEN_HEADER]: this.#token,
         },
       }),
@@ -143,9 +157,11 @@ export class ReviewApiClient {
   }
 
   createSession(file: File): Promise<ReviewSession> {
+    const mediaType =
+      file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "");
     return this.#requestJson<ReviewSession>("/review-sessions", {
       method: "POST",
-      headers: { "Content-Type": file.type },
+      headers: { "Content-Type": mediaType },
       body: file,
     });
   }
@@ -184,13 +200,16 @@ export class ReviewApiClient {
     );
   }
 
-  exportSession(sessionId: string, revision: number): Promise<ReviewSession> {
+  exportSession(
+    sessionId: string,
+    revisions: PageRevision[],
+  ): Promise<ReviewSession> {
     return this.#requestJson<ReviewSession>(
       `/review-sessions/${encodeURIComponent(sessionId)}/export`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expected_revision: revision }),
+        body: JSON.stringify({ expected_revisions: revisions }),
       },
     );
   }
@@ -198,6 +217,13 @@ export class ReviewApiClient {
   async getSource(sessionId: string): Promise<Blob> {
     const response = await this.#requestBlob(
       `/review-sessions/${encodeURIComponent(sessionId)}/source`,
+    );
+    return response.blob();
+  }
+
+  async getPageSource(sessionId: string, pageNumber: number): Promise<Blob> {
+    const response = await this.#requestBlob(
+      `/review-sessions/${encodeURIComponent(sessionId)}/pages/${pageNumber}/source`,
     );
     return response.blob();
   }

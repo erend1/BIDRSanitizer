@@ -5,6 +5,8 @@ import {
   isBoundingBoxWithinImage,
   isUsableBoundingBox,
   normalizeBoundingBox,
+  resizeBoundingBox,
+  translateBoundingBox,
 } from "./review-geometry";
 
 describe("review geometry", () => {
@@ -52,5 +54,38 @@ describe("review geometry", () => {
         100,
       ),
     ).toBe(false);
+  });
+
+  it("moves a box without changing its size and clamps it to the page", () => {
+    expect(
+      translateBoundingBox(
+        { x1: 20, y1: 20, x2: 50, y2: 40 },
+        80,
+        -50,
+        100,
+        100,
+      ),
+    ).toEqual({ x1: 70, y1: 0, x2: 100, y2: 20 });
+  });
+
+  it("resizes from each corner while preserving a safe minimum size", () => {
+    expect(
+      resizeBoundingBox(
+        { x1: 20, y1: 20, x2: 50, y2: 50 },
+        "nw",
+        { x: 48, y: 49 },
+        100,
+        100,
+      ),
+    ).toEqual({ x1: 48, y1: 48, x2: 50, y2: 50 });
+    expect(
+      resizeBoundingBox(
+        { x1: 20, y1: 20, x2: 50, y2: 50 },
+        "se",
+        { x: 150, y: 90 },
+        100,
+        100,
+      ),
+    ).toEqual({ x1: 20, y1: 20, x2: 100, y2: 90 });
   });
 });

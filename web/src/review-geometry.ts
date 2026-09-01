@@ -16,6 +16,43 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
 }
 
+export type ResizeHandle = "nw" | "ne" | "se" | "sw";
+
+export function translateBoundingBox(
+  bbox: BoundingBox,
+  deltaX: number,
+  deltaY: number,
+  imageWidth: number,
+  imageHeight: number,
+): BoundingBox {
+  const width = bbox.x2 - bbox.x1;
+  const height = bbox.y2 - bbox.y1;
+  const x1 = clamp(Math.round(bbox.x1 + deltaX), 0, imageWidth - width);
+  const y1 = clamp(Math.round(bbox.y1 + deltaY), 0, imageHeight - height);
+  return { x1, y1, x2: x1 + width, y2: y1 + height };
+}
+
+export function resizeBoundingBox(
+  bbox: BoundingBox,
+  handle: ResizeHandle,
+  point: ImagePoint,
+  imageWidth: number,
+  imageHeight: number,
+  minimumSize = 2,
+): BoundingBox {
+  const x = clamp(Math.round(point.x), 0, imageWidth);
+  const y = clamp(Math.round(point.y), 0, imageHeight);
+  const leftHandle = handle === "nw" || handle === "sw";
+  const topHandle = handle === "nw" || handle === "ne";
+
+  return {
+    x1: leftHandle ? clamp(x, 0, bbox.x2 - minimumSize) : bbox.x1,
+    y1: topHandle ? clamp(y, 0, bbox.y2 - minimumSize) : bbox.y1,
+    x2: leftHandle ? bbox.x2 : clamp(x, bbox.x1 + minimumSize, imageWidth),
+    y2: topHandle ? bbox.y2 : clamp(y, bbox.y1 + minimumSize, imageHeight),
+  };
+}
+
 export function clientPointToImage(
   clientX: number,
   clientY: number,

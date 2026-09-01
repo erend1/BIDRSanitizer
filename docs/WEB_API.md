@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-The FastAPI adapter exposes the PNG/JPEG review workflow through a stable
+The FastAPI adapter exposes the PNG/JPEG/PDF review workflow through a stable
 same-origin HTTP contract:
 
 ```text
@@ -135,6 +135,7 @@ Accepted media types are:
 ```text
 image/png
 image/jpeg
+application/pdf
 ```
 
 Multipart parsing is intentionally unnecessary. The original filename is not
@@ -142,7 +143,11 @@ sent as part of the contract and is not persisted. The server stores a source
 under a random session directory using a generic name such as `source.png`.
 
 Uploads are streamed and constrained by configurable byte and decoded-pixel
-limits. Image bytes must match the declared media type.
+limits. PDF uploads additionally have a configurable page-count limit whose
+default is 100 pages. A valid PDF that exceeds a review resource limit returns
+HTTP 413 with a safe limit-specific message; malformed or encrypted PDFs
+return HTTP 400. Image bytes must match the declared media type. PDF pages are
+rendered at the configured review DPI into private generic page images.
 
 ---
 
@@ -151,17 +156,20 @@ limits. Image bytes must match the declared media type.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | Minimal process health check; no document state. |
-| `POST` | `/api/v1/review-sessions` | Stream and validate a PNG/JPEG source. |
+| `GET` | `/api/v1/auth-check` | Verify the current per-launch token without accessing document state. |
+| `POST` | `/api/v1/review-sessions` | Stream and validate a PNG/JPEG/PDF source. |
 | `GET` | `/api/v1/review-sessions/{id}` | Read geometry-only session state. |
 | `POST` | `/api/v1/review-sessions/{id}/analysis` | Run automatic analysis with typed settings. |
 | `PATCH` | `/api/v1/review-sessions/{id}/plan` | Apply decisions/manual regions to an expected revision. |
 | `POST` | `/api/v1/review-sessions/{id}/export` | Export and verify an expected plan revision. |
 | `GET` | `/api/v1/review-sessions/{id}/source` | Retrieve the sensitive source for authenticated preview. |
+| `GET` | `/api/v1/review-sessions/{id}/pages/{page}/source` | Retrieve one sensitive rendered page for authenticated preview. |
 | `GET` | `/api/v1/review-sessions/{id}/export` | Retrieve the completed review result. |
 | `DELETE` | `/api/v1/review-sessions/{id}` | Remove the private session workspace. |
 
-The source endpoint returns the original sensitive image. It is a preview
-resource, not sanitized output.
+The source endpoint returns the original sensitive image for single-image
+sessions. The page-source endpoint returns a private rasterized PDF page.
+Both are preview resources, not sanitized output.
 
 ---
 
@@ -179,11 +187,23 @@ export
 exported
 ```
 
-A plan update after export removes the stale exported file and returns the
-session to `analyzed`.
+A PDF session has one source-bound plan and revision per page. A plan update
+after export removes the stale exported file and returns the session to
+`analyzed`.
 
-Both plan updates and export require `expected_revision`. Stale operations
+Plan updates require `page_number` and `expected_revision`. A PDF export
+requires an `expected_revisions` entry for every page; the legacy
+`expected_revision` form remains valid for a one-page image. Stale operations
 return HTTP `409` without changing state.
+
+If Windows Application Control prevents a required local Python analysis
+component from loading, analysis returns HTTP `503` with a bounded diagnostic.
+The document is not analyzed and native loader paths are not returned to the
+client. Other unexpected service failures remain generic HTTP `500` errors.
+
+Plan revisions can update actions, append manual regions, and update existing
+region geometry. Moving or resizing an automatic region sets
+`geometry_modified` and is counted as a human override.
 
 The HTTP plan representation deliberately excludes:
 
@@ -209,7 +229,13 @@ review_required
 ```
 
 Remaining and remediation detections are returned as geometry/category data
-so the client can present them without receiving a detected PII string.
+with page numbers so the client can present them without receiving a detected
+PII string.
+
+PDF export applies the existing deterministic reviewed-image exporter to every
+page, verifies every generated page, and embeds only those generated page
+images into a completely new PDF. The response reports `text_layer_empty`; a
+PDF with extractable text cannot receive a clear status.
 
 The binary download also carries:
 

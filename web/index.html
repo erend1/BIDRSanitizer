@@ -10,13 +10,12 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; base-uri 'none'; connect-src 'self' ws://127.0.0.1:*; font-src 'self'; form-action 'none'; frame-ancestors 'none'; frame-src 'none'; img-src 'self' blob: data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      content="default-src 'self'; base-uri 'none'; connect-src 'self' ws://127.0.0.1:*; font-src 'self'; form-action 'none'; frame-ancestors 'none'; frame-src 'self' blob:; img-src 'self' blob: data:; object-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'"
     />
     <title>BIDR Sanitizer — Review workspace</title>
     <script src="/runtime-config.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

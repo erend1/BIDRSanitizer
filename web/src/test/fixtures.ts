@@ -1,4 +1,9 @@
-import type { ReviewPlan, ReviewSession, ReviewedExport } from "../api-types";
+import type {
+  ReviewPlan,
+  ReviewSession,
+  ReviewedExport,
+  ReviewedPageExport,
+} from "../api-types";
 
 export function syntheticPlan(
   overrides: Partial<ReviewPlan> = {},
@@ -20,6 +25,7 @@ export function syntheticPlan(
         action: "retain",
         detection_type: "face",
         confidence: 0.9,
+        geometry_modified: false,
       },
     ],
     ...overrides,
@@ -29,15 +35,25 @@ export function syntheticPlan(
 export function syntheticExport(
   overrides: Partial<ReviewedExport> = {},
 ): ReviewedExport {
-  return {
+  const pageExport: ReviewedPageExport = {
     status: "passed",
     detectors_clear: true,
     passed: true,
     plan_revision: 0,
     redaction_passes: 1,
     automatic_removal_count: 0,
+    automatic_geometry_adjustment_count: 0,
     manual_addition_count: 0,
     applied_region_count: 1,
+    remaining_detections: [],
+    remediation_detections: [],
+  };
+  return {
+    ...pageExport,
+    text_layer_empty: null,
+    page_count: 1,
+    pages: [pageExport],
+    page_revisions: [{ page_number: 1, revision: 0 }],
     remaining_detections: [],
     remediation_detections: [],
     ...overrides,
@@ -47,14 +63,26 @@ export function syntheticExport(
 export function syntheticSession(
   overrides: Partial<ReviewSession> = {},
 ): ReviewSession {
+  const plan = overrides.plan ?? null;
+  const exported = overrides.export ?? null;
   return {
     session_id: "session-synthetic",
     state: "uploaded",
     media_type: "image/png",
+    page_count: 1,
     image_width: 200,
     image_height: 120,
     plan: null,
     export: null,
     ...overrides,
+    pages: overrides.pages ?? [
+      {
+        page_number: 1,
+        image_width: overrides.image_width ?? 200,
+        image_height: overrides.image_height ?? 120,
+        plan,
+        export: exported?.pages[0] ?? null,
+      },
+    ],
   };
 }

@@ -15,8 +15,10 @@ function renderResult(status: "passed" | "verified_with_human_overrides" | "revi
           status === "verified_with_human_overrides" ? 1 : 0,
       })}
       exportUrl={null}
+      mediaType="image/png"
       imageWidth={200}
       imageHeight={120}
+      pageCount={1}
       busyLabel={null}
       onDownload={vi.fn()}
       onContinueReview={vi.fn()}

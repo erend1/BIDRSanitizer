@@ -18,10 +18,12 @@ React + TypeScript + native SVG
 The browser displays review geometry but does not redact documents. Automatic
 detections, human decisions, and manual regions are saved as a versioned plan.
 The Python privacy engine permanently replaces pixels during export and scans
-the newly generated image again.
+each newly generated page image again.
 
-The initial client accepts PNG and JPEG. Adding PDF, Word, and text review must
-continue through format adapters and the centralized privacy engines.
+The client accepts PNG, JPEG, and PDF. PDF pages are reviewed through the same
+image-plan contract, then rebuilt by the server as a new image-only PDF. Word
+and text review remain future adapters and must continue through the
+centralized privacy engines.
 
 ---
 
@@ -29,10 +31,10 @@ continue through format adapters and the centralized privacy engines.
 
 The client deliberately uses:
 
-- a static Vite build;
+- a static Webpack build;
 - React and strict TypeScript;
 - ordinary CSS;
-- native SVG whose view box is the original image pixel space;
+- native SVG whose view box is the current source page's original pixel space;
 - React state rather than a global state framework;
 - locally bundled code with no remote fonts, scripts, telemetry, or hosted
   inference.
@@ -64,12 +66,19 @@ The client supports:
 - drag-and-drop or file selection without uploading the original filename;
 - safety margin and maximum verification-pass settings before analysis;
 - an authenticated sensitive-source preview;
+- authenticated, page-by-page PDF previews and navigation;
 - automatic geometry grouped by detector category and confidence;
 - manual rectangles drawn in source-image pixel coordinates;
 - a keyboard-accessible coordinate form for manual rectangles;
+- click-to-select automatic and manual rectangles, drag-to-move editing, and
+  four-corner resizing constrained to the page bounds;
 - explicit `Keep visible · override` decisions for automatic regions;
+- explicit human-override accounting when an automatic rectangle is moved or
+  resized;
+- independent unsaved review drafts for every PDF page;
 - optimistic plan revisions and conflict reloads;
-- deterministic export followed by verification;
+- deterministic per-page export followed by verification and, for PDF, new
+  image-only PDF construction plus an extractable-text check;
 - distinct `passed`, `verified_with_human_overrides`, and `review_required`
   result views;
 - geometry-only receipts and generic download filenames;
@@ -104,18 +113,42 @@ $env:BIDR_DEV_API_TOKEN = python -c "import secrets; print(secrets.token_urlsafe
 python scripts\run_web_api_dev.py
 ```
 
-Start the Vite client in a second terminal:
+Start the web client in a second terminal:
 
 ```powershell
 npm --prefix web run dev
 ```
 
 Open `http://127.0.0.1:4173`, then paste the current value of
-`BIDR_DEV_API_TOKEN` into the development token field. Vite proxies `/api` to
-the loopback API on port `8765`, so browser requests remain same-origin.
+`BIDR_DEV_API_TOKEN` into the development token field. The Webpack development
+server proxies `/api` to the loopback API on port `8765`, so browser requests
+remain same-origin.
+
+The connection screen checks both the public health endpoint and an
+authenticated token-check endpoint. Restarting the API invalidates the prior
+launch token; paste the newly printed token instead of reusing the old one.
 
 The development server uses a fixed port because the API origin allowlist is
 exact. Do not bind either process to a public interface.
+
+The API accepts PDFs with up to 100 pages by default. Documents above the
+configured page or rendered-pixel limit are reported as resource-limit errors,
+not as malformed PDFs.
+
+The default `dev`, `build`, and `test` scripts use Webpack and Jest, whose
+normal execution does not require an unsigned native Node binding. This keeps
+the development workflow usable when Windows Smart App Control blocks
+Rolldown's native module. The optional `dev:vite`, `build:vite`, and
+`test:vitest` compatibility scripts remain available for environments where
+that binding is permitted. Do not disable Windows security controls merely to
+run the optional scripts.
+
+Smart App Control can also block unsigned native Python modules required by
+PaddleOCR or Pandas. In that case upload can succeed but analysis returns HTTP
+`503` and states that Windows Application Control blocked a local component.
+Do not disable Windows security controls as an application workaround. Resolve
+the machine policy or use an approved, trusted build of the required native
+dependencies, then restart the API and use its new launch token.
 
 ---
 
@@ -129,9 +162,10 @@ npm --prefix web test
 npm --prefix web run build
 ```
 
-The tests cover original-pixel coordinate conversion, conservative bounding
-boxes, authenticated no-store transport, filename isolation, review status
-language, explicit human overrides, revision-safe plan updates, and the main
+The tests cover original-pixel coordinate conversion, bounded box movement and
+corner resizing, conservative bounding boxes, authenticated no-store
+transport, filename isolation, PDF page navigation, review status language,
+explicit human overrides, revision-safe plan updates, and the main
 upload-to-export interaction.
 
 Python/API validation remains required as well:
