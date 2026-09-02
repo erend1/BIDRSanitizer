@@ -82,8 +82,13 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
-        yield
-        sessions.close()
+        try:
+            yield
+        finally:
+            sessions.close()
+            close_service = getattr(service, "close", None)
+            if callable(close_service):
+                close_service()
 
     app = FastAPI(
         title="BIDR Sanitizer API",

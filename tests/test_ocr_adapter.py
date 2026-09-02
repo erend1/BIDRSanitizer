@@ -1,5 +1,11 @@
+import sys
+
+import pytest
+
 from bidr_sanitizer.models import BoundingBox
 from bidr_sanitizer.ocr.paddle_adapter import (
+    PaddleOCRAdapter,
+    _install_offline_modelscope_stub,
     parse_paddle_result,
 )
 
@@ -80,3 +86,46 @@ def test_ocr_text_is_hidden_from_repr():
 
     assert "0532" not in representation
     assert "123" not in representation
+
+
+def test_offline_modelscope_stub_blocks_remote_download(monkeypatch):
+    monkeypatch.delitem(sys.modules, "modelscope", raising=False)
+
+    _install_offline_modelscope_stub()
+
+    stub = sys.modules["modelscope"]
+    with pytest.raises(RuntimeError, match="local models"):
+        stub.snapshot_download("remote/model")
+
+
+def test_worker_resources_are_closed_once():
+    calls = []
+
+    class FakeConnection:
+        def send(self, payload):
+            calls.append(("send", payload))
+
+        def close(self):
+            calls.append(("connection_close", None))
+
+    class FakeWorker:
+        def join(self, timeout):
+            calls.append(("join", timeout))
+
+        def is_alive(self):
+            return False
+
+    adapter = PaddleOCRAdapter.__new__(PaddleOCRAdapter)
+    adapter._ocr = None
+    adapter._connection = FakeConnection()
+    adapter._worker = FakeWorker()
+    adapter._closed = False
+
+    adapter.close()
+    adapter.close()
+
+    assert calls == [
+        ("send", ("close", None)),
+        ("join", 10.0),
+        ("connection_close", None),
+    ]

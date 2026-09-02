@@ -85,6 +85,15 @@ class ApplicationControlBlockedService(FakeReviewService):
         )
 
 
+class ClosableReviewService(FakeReviewService):
+    def __init__(self) -> None:
+        super().__init__()
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
 def _png_bytes(
     *,
     size: tuple[int, int] = (100, 100),
@@ -169,6 +178,16 @@ def test_web_api_settings_hide_token_and_validate_security_values():
 
     with pytest.raises(ValueError, match="positive integer"):
         _settings(max_upload_bytes=0)
+
+
+def test_api_lifespan_closes_the_analysis_service(tmp_path):
+    service = ClosableReviewService()
+    client, _, _ = _create_client(tmp_path, service=service)
+
+    with client:
+        assert client.get("/api/v1/health").status_code == 200
+
+    assert service.closed is True
 
 
 def test_api_requires_token_and_rejects_cross_origin_and_untrusted_host(tmp_path):

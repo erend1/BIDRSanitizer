@@ -110,8 +110,16 @@ in the first terminal:
 
 ```powershell
 $env:BIDR_DEV_API_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+$env:BIDR_INFERENCE_DEVICE = "auto"
 python scripts\run_web_api_dev.py
 ```
+
+`auto` uses an installed NVIDIA GPU runtime when available and otherwise uses
+CPU. To require the first GPU and receive a clear startup error instead of a
+CPU fallback, set `BIDR_INFERENCE_DEVICE=gpu:0`. Install and verify the pinned
+Windows GPU packages with `scripts\install_gpu_runtime.ps1` as described in
+`docs/INSTALLATION.md`. Restart the API after changing packages or device
+selection.
 
 Start the web client in a second terminal:
 

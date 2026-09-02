@@ -263,3 +263,10 @@ class BIDRSanitizerService:
             output_path,
             plan,
         )
+
+    def close(self) -> None:
+        if self._image_sanitizer is None:
+            return
+        close = getattr(self._image_sanitizer, "close", None)
+        if callable(close):
+            close()

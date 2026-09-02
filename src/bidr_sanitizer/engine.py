@@ -121,3 +121,14 @@ class OfflineImageSanitizer:
             face_detector=self._face_detector,
             signature_detector=self._signature_detector,
         )
+
+    def close(self) -> None:
+        close = getattr(self._ocr, "close", None)
+        if callable(close):
+            close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()

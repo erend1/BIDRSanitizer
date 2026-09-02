@@ -417,6 +417,13 @@ Custom threshold changes should be recorded as user configuration.
 PaddleOCR, GLiNER, YuNet, and YOLOS should be initialized once per
 long-lived sanitizer service.
 
+`BIDR_INFERENCE_DEVICE` selects `auto`, `cpu`, or an explicit GPU such as
+`gpu:0`. On Windows GPU installations, PaddleOCR is kept in one long-lived
+worker process so that PaddlePaddle's CUDA DLLs do not collide with the
+PyTorch CUDA DLLs used by GLiNER and YOLOS. This process boundary does not
+change the privacy architecture: only in-memory OCR results cross it, and
+document text is not written to logs or audit records.
+
 Do not reload heavy models for every file in batch processing or every
 UI interaction.
 

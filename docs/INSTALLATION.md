@@ -166,6 +166,47 @@ A missing installation may produce an error similar to:
 AutoImageProcessor requires the Torchvision library
 ```
 
+### Optional NVIDIA GPU runtime
+
+The default dependency groups install the CPU runtimes. On a Windows machine
+with a supported NVIDIA GPU and current driver, install the normal project and
+models first, then replace the CPU inference packages with the pinned GPU
+builds:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install_gpu_runtime.ps1
+```
+
+The script installs PyTorch `2.13.0` for CUDA 13.0 and PaddlePaddle GPU `3.2.2`
+for CUDA 12.9, runs `pip check`, and performs a real model-startup check. A
+separate CUDA Toolkit installation is not required by these Python wheels, but
+an NVIDIA driver new enough for both runtimes is required.
+
+Device selection is controlled by `BIDR_INFERENCE_DEVICE`:
+
+```powershell
+$env:BIDR_INFERENCE_DEVICE="auto"   # default: GPU when available, otherwise CPU
+$env:BIDR_INFERENCE_DEVICE="gpu:0"  # require GPU 0; fail clearly if unavailable
+$env:BIDR_INFERENCE_DEVICE="cpu"    # force CPU inference
+```
+
+On Windows, BIDR starts PaddleOCR in a private worker process. This is required
+because the pinned Paddle and PyTorch wheels contain different cuDNN builds
+whose same-named DLLs cannot safely share one process. OCR, GLiNER, and the
+YOLOS signature detector use the selected GPU. YuNet face detection remains on
+CPU with the current OpenCV wheel.
+
+Run the full synthetic model check when required:
+
+```powershell
+python scripts\check_gpu_runtime.py --device gpu:0 `
+    --image samples\test_complete.png --full-analysis
+```
+
+Re-run `scripts\install_gpu_runtime.ps1` after any command that reinstalls the
+`all` dependency extra, because that extra intentionally restores the portable
+CPU packages used by CI and non-NVIDIA systems.
+
 ---
 
 ## 7. Install Local Models
@@ -280,19 +321,20 @@ downloading and explains how to select an ASCII-safe custom path.
 
 ---
 
-## 10. Verify PaddleOCR Model Loading
+## 10. Verify Model Loading
 
 After installing the models:
 
 ```powershell
-python -c "from bidr_sanitizer.ocr.paddle_adapter import PaddleOCRAdapter; PaddleOCRAdapter(); print('External Paddle models OK')"
+python scripts\check_gpu_runtime.py --device auto
 ```
 
-A successful installation should show model creation from the configured
-external model directory and end with:
+A successful installation should show PaddleOCR model creation from the
+configured external model directory, report the selected PaddleOCR and PyTorch
+devices, and end with:
 
 ```text
-External Paddle models OK
+Inference runtime check passed.
 ```
 
 No model should be downloaded during this command when the local

@@ -16,6 +16,9 @@ from bidr_sanitizer.models import (
 from bidr_sanitizer.model_check import (
     require_local_model,
 )
+from bidr_sanitizer.inference_device import (
+    resolve_torch_device,
+)
 
 
 LABEL_MAPPING = {
@@ -43,6 +46,8 @@ def _has_self_contained_backbone(
 def _load_self_contained_gliner(
     gliner_class: Any,
     model_path: Path,
+    *,
+    device: str = "cpu",
 ) -> Any:
     """
     Load GLiNER without consulting a Hugging Face cache.
@@ -101,7 +106,7 @@ def _load_self_contained_gliner(
     )
     del state_dict
 
-    model.model.to("cpu")
+    model.model.to(device)
     model.eval()
     return model
 
@@ -115,6 +120,7 @@ class GLiNERPIIRecognizer:
         ),
         person_threshold: float = 0.35,
         address_threshold: float = 0.30,
+        device: str | None = None,
     ) -> None:
 
         if not (
@@ -163,7 +169,13 @@ class GLiNERPIIRecognizer:
             "HF_HUB_DISABLE_TELEMETRY"
         ] = "1"
 
+        import torch
         from gliner import GLiNER
+
+        self._device = resolve_torch_device(
+            torch,
+            device,
+        )
 
         self._person_threshold = (
             person_threshold
@@ -180,6 +192,7 @@ class GLiNERPIIRecognizer:
                 _load_self_contained_gliner(
                     GLiNER,
                     model_path,
+                    device=self._device,
                 )
             )
 
@@ -191,7 +204,19 @@ class GLiNERPIIRecognizer:
                 )
             )
 
+            model_module = getattr(
+                self._model,
+                "model",
+                None,
+            )
+            if model_module is not None:
+                model_module.to(self._device)
+
         self._model.eval()
+
+    @property
+    def device(self) -> str:
+        return self._device
 
     def recognize(
         self,

@@ -17,6 +17,9 @@ from bidr_sanitizer.models import (
 from bidr_sanitizer.model_check import (
     require_local_model,
 )
+from bidr_sanitizer.inference_device import (
+    resolve_torch_device,
+)
 
 
 def expand_signature_bbox(
@@ -226,6 +229,7 @@ class YOLOSSignatureDetector:
         ),
         *,
         confidence_threshold: float = 0.25,
+        device: str | None = None,
     ) -> None:
 
         if not (
@@ -267,6 +271,12 @@ class YOLOSSignatureDetector:
             AutoImageProcessor,
             AutoModelForObjectDetection,
         )
+        import torch
+
+        self._device = resolve_torch_device(
+            torch,
+            device,
+        )
 
         self._confidence_threshold = (
             confidence_threshold
@@ -288,7 +298,12 @@ class YOLOSSignatureDetector:
             )
         )
 
+        self._model.to(self._device)
         self._model.eval()
+
+    @property
+    def device(self) -> str:
+        return self._device
 
     def detect(
         self,
@@ -321,6 +336,7 @@ class YOLOSSignatureDetector:
             images=image,
             return_tensors="pt",
         )
+        inputs = inputs.to(self._device)
 
         with torch.no_grad():
             outputs = self._model(
@@ -333,7 +349,8 @@ class YOLOSSignatureDetector:
                     image_height,
                     image_width,
                 ]
-            ]
+            ],
+            device=self._device,
         )
 
         processed = (
