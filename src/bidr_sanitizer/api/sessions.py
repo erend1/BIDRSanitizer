@@ -372,12 +372,16 @@ class ReviewSessionManager:
                         f"{self._max_pdf_pages}."
                     )
 
+                render_scale = self._pdf_review_dpi / 72.0
                 for page_index in range(page_count):
                     page = document[page_index]
                     try:
                         width_pt, height_pt = page.get_size()
-                        pixel_width = math.ceil(width_pt * self._pdf_review_dpi / 72.0)
-                        pixel_height = math.ceil(height_pt * self._pdf_review_dpi / 72.0)
+                        # Match the multiplication order used by PDFium's
+                        # renderer. It matters at exact pixel boundaries such
+                        # as 792 pt at 300 DPI (3301 pixels in PDFium).
+                        pixel_width = math.ceil(width_pt * render_scale)
+                        pixel_height = math.ceil(height_pt * render_scale)
                         if pixel_width * pixel_height > self._max_image_pixels:
                             raise PDFReviewLimitExceededError(
                                 "A rendered PDF page exceeds the configured pixel limit."

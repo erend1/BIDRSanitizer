@@ -118,9 +118,13 @@ def _jpeg_bytes(*, size: tuple[int, int] = (100, 100)) -> bytes:
     return buffer.getvalue()
 
 
-def _pdf_bytes(*, page_count: int = 2) -> bytes:
+def _pdf_bytes(
+    *,
+    page_count: int = 2,
+    page_size: tuple[float, float] = (144, 144),
+) -> bytes:
     buffer = BytesIO()
-    canvas = Canvas(buffer, pagesize=(144, 144))
+    canvas = Canvas(buffer, pagesize=page_size)
     for page_number in range(1, page_count + 1):
         canvas.drawString(20, 100, f"Synthetic page {page_number}")
         canvas.showPage()
@@ -495,6 +499,30 @@ def test_pdf_upload_enforces_page_and_rendered_pixel_limits(tmp_path):
         assert response.json() == {
             "detail": "A rendered PDF page exceeds the configured pixel limit."
         }
+
+
+def test_pdf_inspection_dimensions_match_pdfium_rendering(tmp_path):
+    client, app, service = _create_client(
+        tmp_path,
+        settings=_settings(max_image_pixels=10_000_000, pdf_review_dpi=300),
+    )
+    with client:
+        response = client.post(
+            "/api/v1/review-sessions",
+            content=_pdf_bytes(page_count=1, page_size=(612, 792)),
+            headers=_authorized_headers(media_type="application/pdf"),
+        )
+        assert response.status_code == 201, response.text
+        snapshot = response.json()
+        page = snapshot["pages"][0]
+
+        preview = client.get(
+            f"/api/v1/review-sessions/{snapshot['session_id']}/pages/1/source",
+            headers=_authorized_headers(),
+        )
+        assert preview.status_code == 200
+        with Image.open(BytesIO(preview.content)) as rendered:
+            assert (page["image_width"], page["image_height"]) == rendered.size
 
 
 def test_default_pdf_page_limit_accepts_an_81_page_document(tmp_path):
