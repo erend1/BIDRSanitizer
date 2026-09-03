@@ -14,7 +14,11 @@ from bidr_sanitizer.models import BoundingBox, Detection
 from bidr_sanitizer.ocr.base import OCRProvider
 from bidr_sanitizer.pipeline import detect_image_pii
 from bidr_sanitizer.recognizers.semantic.base import SemanticPIIRecognizer
-from bidr_sanitizer.redaction import RedactionRegion, redact_image_file
+from bidr_sanitizer.redaction import (
+    ImageOutputTransform,
+    RedactionRegion,
+    redact_image_file,
+)
 from bidr_sanitizer.review.models import (
     ImageReviewPlan,
     ImageSanitizerSettings,
@@ -252,6 +256,7 @@ def export_reviewed_image(
     semantic_recognizer: SemanticPIIRecognizer | None = None,
     face_detector: FaceDetectorProvider | None = None,
     signature_detector: SignatureDetectorProvider | None = None,
+    output_transform: ImageOutputTransform | None = None,
 ) -> ReviewedImageExportResult:
     """Destructively redact a reviewed plan and verify the exported pixels."""
 
@@ -290,6 +295,7 @@ def export_reviewed_image(
             temporary_path,
             redaction_regions,
             margin=plan.settings.redaction_margin,
+            output_transform=output_transform,
         )
 
         verification = verify_image(
@@ -341,6 +347,7 @@ def export_reviewed_image(
                 temporary_path,
                 redaction_regions,
                 margin=plan.settings.redaction_margin,
+                output_transform=output_transform,
             )
             redaction_passes += 1
 

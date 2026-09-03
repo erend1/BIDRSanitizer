@@ -59,7 +59,14 @@ class FakeReviewService:
             settings=settings,
         )
 
-    def export_reviewed_image(self, input_path, output_path, plan):
+    def export_reviewed_image(
+        self,
+        input_path,
+        output_path,
+        plan,
+        *,
+        output_transform=None,
+    ):
         input_path = Path(input_path)
         output_path = Path(output_path)
         self.export_paths.append((input_path, output_path))
@@ -69,6 +76,7 @@ class FakeReviewService:
             plan,
             ocr=EmptyOCR(),
             face_detector=StaticDetector([]),
+            output_transform=output_transform,
         )
 
 
@@ -363,6 +371,9 @@ def test_pdf_review_session_analyzes_pages_updates_geometry_and_rebuilds_pdf(
         assert uploaded["page_count"] == 2
         assert [page["page_number"] for page in uploaded["pages"]] == [1, 2]
         session_id = uploaded["session_id"]
+        assert not list(
+            app.state.review_sessions.workspace_root.rglob("source_page_*.png")
+        )
 
         preview = client.get(
             f"/api/v1/review-sessions/{session_id}/pages/2/source",
@@ -370,6 +381,12 @@ def test_pdf_review_session_analyzes_pages_updates_geometry_and_rebuilds_pdf(
         )
         assert preview.status_code == 200
         assert preview.headers["content-type"].startswith("image/png")
+        rendered_previews = list(
+            app.state.review_sessions.workspace_root.rglob("source_page_*.png")
+        )
+        assert [path.name for path in rendered_previews] == [
+            "source_page_0002.png"
+        ]
 
         analyzed_response = client.post(
             f"/api/v1/review-sessions/{session_id}/analysis",
@@ -380,6 +397,9 @@ def test_pdf_review_session_analyzes_pages_updates_geometry_and_rebuilds_pdf(
         analyzed = analyzed_response.json()
         assert analyzed["plan"] is None
         assert all(page["plan"] is not None for page in analyzed["pages"])
+        assert len(
+            list(app.state.review_sessions.workspace_root.rglob("source_page_*.png"))
+        ) == 2
 
         revised_response = client.patch(
             f"/api/v1/review-sessions/{session_id}/plan",

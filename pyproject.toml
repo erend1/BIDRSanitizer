@@ -88,6 +88,7 @@ vision = [
 
 
 pdf = [
+    "img2pdf==0.6.3",
     "pypdfium2==5.13.0",
     "reportlab==5.0.0",
 ]
@@ -111,6 +112,7 @@ all = [
     "torchvision==0.28.0",
     "transformers==5.13.1",
 
+    "img2pdf==0.6.3",
     "pypdfium2==5.13.0",
     "reportlab==5.0.0",
 

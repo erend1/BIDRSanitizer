@@ -457,7 +457,16 @@ The page image is processed by the existing image sanitizer.
 
 Only pages that pass image verification are accepted.
 
-Sanitized pages are then embedded into a completely new PDF.
+Before verification, each sanitized page is compacted adaptively as an
+indexed-color image. The pixel width and height are unchanged, opaque black
+redaction regions are reapplied exactly after color reduction, and the compact
+pixels are the pixels scanned by the verifier. This preserves the configured
+300-DPI spatial resolution while avoiding the large RGB/Flate representation
+previously produced during PDF assembly.
+
+The verified PNG streams are then embedded without re-encoding into a
+completely new PDF. Page dimensions are preserved, but no source-PDF object is
+copied.
 
 The final PDF is intentionally image-only.
 
@@ -575,6 +584,11 @@ operations. The session layer renders pages, maintains one versioned plan per
 page, exports and verifies each reviewed page through
 `export_reviewed_image`, then uses the existing PDF reconstruction helpers to
 create a new image-only PDF and verify that it has no extractable text.
+
+Upload performs PDF validation and bounded page-geometry inspection without
+eagerly rendering every page. A page is rasterized only when its preview is
+requested or when analysis requires it. Analysis still renders and scans every
+page; this optimization does not skip detector work.
 
 ---
 

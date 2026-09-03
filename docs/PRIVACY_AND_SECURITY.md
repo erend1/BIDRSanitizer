@@ -174,6 +174,10 @@ page rasterization
    ↓
 image sanitization
    ↓
+adaptive indexed-color compaction
+   ↓
+verification of the compacted pixels
+   ↓
 new image-only PDF
 ```
 
@@ -187,6 +191,12 @@ This is intended to prevent sensitive information from surviving in:
 - hidden OCR text;
 - document attachments;
 - metadata.
+
+The page pixel dimensions are not reduced during compaction. Redaction boxes
+are redrawn as exact opaque black pixels after palette selection. The original
+page is never retained underneath a coordinate-based image or rectangle;
+placing a visual object over the original PDF would leave its sensitive text
+recoverable and is therefore forbidden.
 
 ---
 
@@ -351,9 +361,10 @@ written to the API log.
 
 Uploads are streamed and limited by encoded byte size and decoded page pixel
 count. Only validated PNG, JPEG, and readable unencrypted PDF files are
-accepted. PDFs are also constrained by page count and are rasterized into
-private page images before analysis. Reviewed PDF export reconstructs a new
-image-only document and checks it for extractable text.
+accepted. PDFs are also constrained by page count and page geometry. Page
+images are rendered lazily for authenticated preview and in full before
+analysis. Reviewed PDF export reconstructs a new image-only document from
+verified compact page pixels and checks it for extractable text.
 
 The application deletes a session workspace on explicit removal and deletes
 remaining sessions on shutdown. This cleanup does not constitute guaranteed

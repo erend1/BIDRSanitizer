@@ -25,6 +25,13 @@ image-plan contract, then rebuilt by the server as a new image-only PDF. Word
 and text review remain future adapters and must continue through the
 centralized privacy engines.
 
+PDF upload validates page count and geometry without eagerly rendering every
+page. Rendering occurs when a preview is requested and for all pages when
+analysis begins. Export keeps the configured 300-DPI pixel dimensions,
+adaptively reduces page color depth, verifies those final compact pixels, and
+directly embeds their compressed streams into the new PDF. It never overlays
+images on the original PDF or preserves the original text layer.
+
 ---
 
 ## Design Constraints

@@ -32,6 +32,7 @@ from bidr_sanitizer.review.models import (
     ReviewedImageExportResult,
     ReviewedOutputStatus,
 )
+from bidr_sanitizer.redaction import ImageOutputTransform
 
 
 SUPPORTED_UPLOADS = {
@@ -115,6 +116,8 @@ class ReviewServiceProvider(Protocol):
         input_path: str | Path,
         output_path: str | Path,
         plan: ImageReviewPlan,
+        *,
+        output_transform: ImageOutputTransform | None = None,
     ) -> ReviewedImageExportResult:
         ...
 
@@ -355,8 +358,6 @@ class ReviewSessionManager:
     ) -> list[_ReviewPageRecord]:
         import pypdfium2 as pdfium
 
-        from bidr_sanitizer.pdf.sanitizer import _render_page_to_png
-
         pages: list[_ReviewPageRecord] = []
         try:
             document = pdfium.PdfDocument(str(path))
@@ -385,26 +386,17 @@ class ReviewSessionManager:
                         page_path = session_directory / (
                             f"source_page_{page_index + 1:04d}.png"
                         )
-                        rendered_width_pt, rendered_height_pt = _render_page_to_png(
-                            page,
-                            page_path,
-                            dpi=self._pdf_review_dpi,
-                        )
                     finally:
                         page.close()
-
-                    with Image.open(page_path) as rendered:
-                        image_width, image_height = rendered.size
-                        rendered.verify()
 
                     pages.append(
                         _ReviewPageRecord(
                             page_number=page_index + 1,
                             source_path=page_path,
-                            image_width=image_width,
-                            image_height=image_height,
-                            width_pt=rendered_width_pt,
-                            height_pt=rendered_height_pt,
+                            image_width=pixel_width,
+                            image_height=pixel_height,
+                            width_pt=float(width_pt),
+                            height_pt=float(height_pt),
                         )
                     )
             finally:
@@ -417,6 +409,67 @@ class ReviewSessionManager:
             ) from error
 
         return pages
+
+    def _ensure_pages_rendered(
+        self,
+        record: _ReviewSessionRecord,
+        pages: Iterable[_ReviewPageRecord],
+    ) -> None:
+        if record.media_type != "application/pdf":
+            return
+
+        missing_pages = [page for page in pages if not page.source_path.exists()]
+        if not missing_pages:
+            return
+
+        import pypdfium2 as pdfium
+
+        from bidr_sanitizer.pdf.sanitizer import _render_page_to_png
+
+        created_paths: list[Path] = []
+        try:
+            document = pdfium.PdfDocument(str(record.source_path))
+            try:
+                document.init_forms()
+                for page_record in missing_pages:
+                    page = document[page_record.page_number - 1]
+                    try:
+                        width_pt, height_pt = _render_page_to_png(
+                            page,
+                            page_record.source_path,
+                            dpi=self._pdf_review_dpi,
+                        )
+                        created_paths.append(page_record.source_path)
+                    finally:
+                        page.close()
+
+                    with Image.open(page_record.source_path) as rendered:
+                        rendered_width, rendered_height = rendered.size
+                        rendered.verify()
+
+                    if (
+                        rendered_width != page_record.image_width
+                        or rendered_height != page_record.image_height
+                        or not math.isclose(
+                            width_pt,
+                            page_record.width_pt,
+                            abs_tol=1e-6,
+                        )
+                        or not math.isclose(
+                            height_pt,
+                            page_record.height_pt,
+                            abs_tol=1e-6,
+                        )
+                    ):
+                        raise InvalidImageUploadError(
+                            "A rendered PDF page does not match its inspected geometry."
+                        )
+            finally:
+                document.close()
+        except BaseException:
+            for created_path in created_paths:
+                created_path.unlink(missing_ok=True)
+            raise
 
     async def create_session(
         self,
@@ -512,6 +565,7 @@ class ReviewSessionManager:
                 record = self._record(session_id)
 
             try:
+                self._ensure_pages_rendered(record, record.pages)
                 plans = [
                     self._service.analyze_image_for_review(
                         page.source_path,
@@ -594,6 +648,7 @@ class ReviewSessionManager:
             if record.media_type == "application/pdf":
                 from bidr_sanitizer.pdf.sanitizer import (
                     _build_image_only_pdf,
+                    compact_redacted_pdf_page,
                     pdf_has_extractable_text,
                 )
 
@@ -610,6 +665,7 @@ class ReviewSessionManager:
                             page.source_path,
                             safe_path,
                             page.plan,
+                            output_transform=compact_redacted_pdf_page,
                         )
                         if result.output_path.resolve() != safe_path.resolve():
                             raise RuntimeError(
@@ -666,6 +722,7 @@ class ReviewSessionManager:
             self._ensure_open()
             record = self._record(session_id)
             page = self._page(record, page_number)
+            self._ensure_pages_rendered(record, (page,))
             media_type = record.media_type if record.media_type != "application/pdf" else "image/png"
             return page.source_path.read_bytes(), media_type
 

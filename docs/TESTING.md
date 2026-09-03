@@ -425,6 +425,7 @@ disabled remote-asset documentation routes
 streamed upload byte, decoded-pixel, and PDF page-count limits
 PNG/JPEG/PDF media-type and content validation
 multi-page PDF analysis and image-only reconstruction
+lazy PDF page rendering before preview/analysis
 per-page revision conflict behavior
 server-side source/path/fingerprint isolation
 revision conflict behavior
@@ -504,6 +505,9 @@ page count preservation
 new PDF construction
 lack of extractable text
 page-size preservation
+unchanged page-image pixel dimensions after compaction
+exact opaque black redaction pixels after palette reduction
+direct compressed-image embedding without avoidable re-encoding growth
 failure behavior
 ```
 

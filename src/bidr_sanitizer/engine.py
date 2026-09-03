@@ -12,6 +12,7 @@ from bidr_sanitizer.pipeline import (
     SanitizationResult,
     sanitize_and_verify_image,
 )
+from bidr_sanitizer.redaction import ImageOutputTransform
 from bidr_sanitizer.review.image_workflow import (
     analyze_image_for_review,
     export_reviewed_image,
@@ -70,6 +71,7 @@ class OfflineImageSanitizer:
         *,
         margin: int = 5,
         max_redaction_passes: int = 3,
+        output_transform: ImageOutputTransform | None = None,
     ) -> SanitizationResult:
 
         return sanitize_and_verify_image(
@@ -89,6 +91,7 @@ class OfflineImageSanitizer:
             max_redaction_passes=(
                 max_redaction_passes
             ),
+            output_transform=output_transform,
         )
 
     def analyze_for_review(
@@ -111,6 +114,8 @@ class OfflineImageSanitizer:
         input_path: str | Path,
         output_path: str | Path,
         plan: ImageReviewPlan,
+        *,
+        output_transform: ImageOutputTransform | None = None,
     ) -> ReviewedImageExportResult:
         return export_reviewed_image(
             input_path,
@@ -120,6 +125,7 @@ class OfflineImageSanitizer:
             semantic_recognizer=self._semantic_recognizer,
             face_detector=self._face_detector,
             signature_detector=self._signature_detector,
+            output_transform=output_transform,
         )
 
     def close(self) -> None:

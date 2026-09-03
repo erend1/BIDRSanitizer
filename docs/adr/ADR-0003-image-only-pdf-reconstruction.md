@@ -29,7 +29,12 @@ Each source PDF page is rendered to an image.
 The rendered page is processed through the standard image sanitization
 pipeline.
 
-A new PDF is then created from the sanitized rasterized page images.
+The sanitized raster is adaptively converted to an indexed-color image without
+changing its pixel dimensions. Opaque black redaction regions are reapplied
+after this conversion, and verification runs on those final compact pixels.
+
+A new PDF is then created by directly embedding the compact sanitized image
+streams, without decoding and re-encoding them during assembly.
 
 The reconstructed PDF preserves the intended page dimensions but does
 not preserve the original PDF object graph.
@@ -49,7 +54,10 @@ Searchability, text selection, semantic accessibility, editable form
 fields, hyperlinks, annotations, and similar source-PDF capabilities may
 be lost.
 
-Output files may be larger than source PDFs.
+Image-only reconstruction cannot mathematically guarantee an output no larger
+than every possible source vector PDF. Adaptive color reduction and direct
+stream embedding minimize that cost while retaining the configured spatial
+resolution and privacy architecture.
 
 Rasterization quality and DPI become relevant to both readability and
 detector performance.
@@ -59,6 +67,10 @@ remains recoverable from the original PDF structure.
 
 The reconstructed file is a new document rather than a modified version
 of the original PDF internals.
+
+Placing replacement images only over source coordinates was rejected: the
+original selectable or hidden content would remain underneath and the visual
+cover could be removed.
 
 ## Verification
 

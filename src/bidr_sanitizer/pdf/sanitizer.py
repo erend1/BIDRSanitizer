@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import tempfile
 from pathlib import Path
 
+import img2pdf
 import pypdfium2 as pdfium
-from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen.canvas import Canvas
+from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 from bidr_sanitizer.pdf.base import (
     ImageSanitizerProvider,
@@ -14,9 +15,92 @@ from bidr_sanitizer.pdf.models import (
     PDFPageSanitizationResult,
     PDFSanitizationResult,
 )
+from bidr_sanitizer.redaction import RedactionRegion
 
 
 DEFAULT_PDF_DPI = 300
+PDF_PALETTE_SIZES = (16, 32, 64, 128, 256)
+PDF_MAX_MEAN_CHANNEL_RMS = 6.0
+
+
+def _mean_channel_rms(first: Image.Image, second: Image.Image) -> float:
+    difference = ImageChops.difference(first, second)
+    return sum(ImageStat.Stat(difference).rms) / 3.0
+
+
+def _exact_black_palette_index(image: Image.Image) -> int:
+    palette = list(image.getpalette() or ())
+    if len(palette) < 768:
+        palette.extend([0] * (768 - len(palette)))
+
+    get_flattened_data = getattr(image, "get_flattened_data", None)
+    if get_flattened_data is None:
+        used_indices = set(image.getdata())
+    else:
+        used_indices = set(get_flattened_data())
+    for index in used_indices:
+        offset = index * 3
+        if palette[offset : offset + 3] == [0, 0, 0]:
+            return index
+
+    unused_index = next(
+        (index for index in range(256) if index not in used_indices),
+        None,
+    )
+    if unused_index is None:
+        unused_index = min(
+            used_indices,
+            key=lambda index: sum(palette[index * 3 : index * 3 + 3]),
+        )
+
+    offset = unused_index * 3
+    palette[offset : offset + 3] = [0, 0, 0]
+    image.putpalette(palette)
+    return unused_index
+
+
+def compact_redacted_pdf_page(
+    image: Image.Image,
+    redaction_regions: tuple[RedactionRegion, ...],
+    margin: int,
+) -> Image.Image:
+    """Keep page dimensions while selecting a compact indexed-color image."""
+
+    rgb = image.convert("RGB")
+    compact = None
+
+    for color_count in PDF_PALETTE_SIZES:
+        candidate = rgb.quantize(
+            colors=color_count,
+            method=Image.Quantize.FASTOCTREE,
+            dither=Image.Dither.NONE,
+        )
+        reconstructed = candidate.convert("RGB")
+        error = _mean_channel_rms(rgb, reconstructed)
+        reconstructed.close()
+
+        if error <= PDF_MAX_MEAN_CHANNEL_RMS or color_count == 256:
+            compact = candidate
+            break
+
+        candidate.close()
+
+    assert compact is not None
+
+    black_index = _exact_black_palette_index(compact)
+    draw = ImageDraw.Draw(compact)
+    for region in redaction_regions:
+        bbox = region.bbox.expand(
+            margin=margin,
+            image_width=compact.width,
+            image_height=compact.height,
+        )
+        draw.rectangle(
+            [(bbox.x1, bbox.y1), (bbox.x2, bbox.y2)],
+            fill=black_index,
+        )
+
+    return compact
 
 
 def _render_page_to_png(
@@ -95,56 +179,38 @@ def _build_image_only_pdf(
             "Cannot create a PDF with zero pages."
         )
 
-    first_path, first_width, first_height = (
-        pages[0]
-    )
+    page_sizes = [
+        (width_pt, height_pt)
+        for _, width_pt, height_pt in pages
+    ]
+    layout_index = 0
 
-    canvas = Canvas(
-        str(output_path),
-        pagesize=(
-            first_width,
-            first_height,
-        ),
-        pageCompression=1,
-    )
+    def exact_page_layout(
+        image_width_px,
+        image_height_px,
+        image_dpi,
+    ):
+        nonlocal layout_index
+        if layout_index >= len(page_sizes):
+            raise RuntimeError("PDF encoder requested an unexpected page layout.")
+        width_pt, height_pt = page_sizes[layout_index]
+        layout_index += 1
+        return width_pt, height_pt, width_pt, height_pt
 
-    # Do not copy any original PDF metadata.
-    canvas.setAuthor("")
-    canvas.setTitle("")
-    canvas.setSubject("")
-    canvas.setKeywords("")
-    canvas.setCreator(
-        "BIDRSanitizer"
-    )
-
-    for (
-        image_path,
-        width_pt,
-        height_pt,
-    ) in pages:
-
-        canvas.setPageSize(
-            (
-                width_pt,
-                height_pt,
-            )
+    with output_path.open("wb") as output_stream:
+        img2pdf.convert(
+            *(str(image_path) for image_path, _, _ in pages),
+            outputstream=output_stream,
+            layout_fun=exact_page_layout,
+            engine=img2pdf.Engine.internal,
+            nodate=True,
+            creator="BIDRSanitizer",
+            producer="BIDRSanitizer",
         )
 
-        canvas.drawImage(
-            ImageReader(
-                str(image_path)
-            ),
-            0,
-            0,
-            width=width_pt,
-            height=height_pt,
-            preserveAspectRatio=False,
-            mask="auto",
-        )
-
-        canvas.showPage()
-
-    canvas.save()
+    if layout_index != len(page_sizes):
+        output_path.unlink(missing_ok=True)
+        raise RuntimeError("PDF encoder did not consume every sanitized page.")
 
 
 def pdf_has_extractable_text(
@@ -339,6 +405,7 @@ def sanitize_pdf(
                         max_redaction_passes=(
                             max_redaction_passes
                         ),
+                        output_transform=compact_redacted_pdf_page,
                     )
                 )
 

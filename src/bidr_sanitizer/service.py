@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bidr_sanitizer.redaction import ImageOutputTransform
+
 
 if TYPE_CHECKING:
     from bidr_sanitizer.review.models import (
@@ -240,6 +242,8 @@ class BIDRSanitizerService:
         input_path: str | Path,
         output_path: str | Path,
         plan: ImageReviewPlan,
+        *,
+        output_transform: ImageOutputTransform | None = None,
     ) -> ReviewedImageExportResult:
         input_path = Path(input_path)
         output_path = Path(output_path)
@@ -258,10 +262,19 @@ class BIDRSanitizerService:
                 f"received: {output_extension or '<none>'}"
             )
 
-        return self._get_image_sanitizer().export_reviewed(
+        image_sanitizer = self._get_image_sanitizer()
+        if output_transform is None:
+            return image_sanitizer.export_reviewed(
+                input_path,
+                output_path,
+                plan,
+            )
+
+        return image_sanitizer.export_reviewed(
             input_path,
             output_path,
             plan,
+            output_transform=output_transform,
         )
 
     def close(self) -> None:

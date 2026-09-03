@@ -89,6 +89,15 @@ Binary distributions also contain PDFium and associated dependency
 licenses. Refer to the license material distributed with the installed
 pypdfium2 package.
 
+### img2pdf
+
+Upstream: josch/img2pdf
+License: LGPL-3.0-or-later
+
+img2pdf depends on pikepdf (MPL-2.0) and lxml (BSD-3-Clause). Refer to
+the license material distributed with those installed packages for their
+complete terms and bundled-component notices.
+
 ### ReportLab
 
 Upstream: ReportLab

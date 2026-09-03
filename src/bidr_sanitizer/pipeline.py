@@ -8,7 +8,10 @@ from bidr_sanitizer.ocr.base import OCRProvider
 from bidr_sanitizer.ocr.paddle_adapter import (
     PaddleOCRAdapter,
 )
-from bidr_sanitizer.redaction import redact_image_file
+from bidr_sanitizer.redaction import (
+    ImageOutputTransform,
+    redact_image_file,
+)
 from bidr_sanitizer.verification.models import (
     VerificationReport,
 )
@@ -103,6 +106,7 @@ def sanitize_image(
     signature_detector: (
         SignatureDetectorProvider | None
     ) = None,
+    output_transform: ImageOutputTransform | None = None,
 ) -> list[Detection]:
 
     if ocr is None:
@@ -121,6 +125,7 @@ def sanitize_image(
         output_path=output_path,
         detections=detections,
         margin=margin,
+        output_transform=output_transform,
     )
 
     return detections
@@ -142,6 +147,7 @@ def sanitize_and_verify_image(
     signature_detector: (
         SignatureDetectorProvider | None
     ) = None,
+    output_transform: ImageOutputTransform | None = None,
 ) -> SanitizationResult:
 
     input_path = Path(input_path)
@@ -172,6 +178,7 @@ def sanitize_and_verify_image(
         semantic_recognizer=semantic_recognizer,
         face_detector=face_detector,
         signature_detector=signature_detector,
+        output_transform=output_transform,
     )
 
     all_applied = list(applied)
@@ -238,6 +245,7 @@ def sanitize_and_verify_image(
             output_path=output_path,
             detections=all_applied,
             margin=margin,
+            output_transform=output_transform,
         )
 
         redaction_passes += 1

@@ -6,6 +6,7 @@ from typing import Protocol
 from bidr_sanitizer.pipeline import (
     SanitizationResult,
 )
+from bidr_sanitizer.redaction import ImageOutputTransform
 
 
 class ImageSanitizerProvider(Protocol):
@@ -16,5 +17,6 @@ class ImageSanitizerProvider(Protocol):
         *,
         margin: int = 5,
         max_redaction_passes: int = 3,
+        output_transform: ImageOutputTransform | None = None,
     ) -> SanitizationResult:
         ...

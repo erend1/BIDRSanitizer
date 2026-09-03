@@ -74,6 +74,7 @@ Additional runtime components include:
 - Pillow;
 - OpenCV;
 - pypdfium2;
+- img2pdf;
 - ReportLab;
 - pywin32.
 
@@ -569,7 +570,9 @@ PNG/RGB image
  ↓
 existing image sanitizer
  ↓
-verified sanitized image
+adaptive indexed-color compaction at unchanged pixel dimensions
+ ↓
+verified compact sanitized image
  ↓
 new PDF
 ```
@@ -579,12 +582,21 @@ The output PDF is created from sanitized raster images.
 It should contain no extractable original text.
 
 This approach also prevents original PDF annotations, hidden text,
-attachments, or forms from being copied into the output.
+attachments, or forms from being copied into the output. Compact page PNG
+streams are embedded directly with img2pdf instead of being decoded and
+re-encoded as large RGB/Flate streams. Redaction regions are reapplied as
+exact opaque black palette pixels after color reduction, before verification.
 
 Tests currently verify:
 
 - page count preservation;
-- image-only reconstruction.
+- image-only reconstruction;
+- unchanged raster dimensions and exact black redaction pixels;
+- direct image-stream embedding without avoidable PDF size expansion.
+
+The web upload path validates PDF page count and geometry immediately but
+renders pages lazily. Preview renders only the requested page; analysis still
+renders and processes every page.
 
 Production rendering uses higher DPI than lightweight unit tests.
 
@@ -826,8 +838,9 @@ See `REVIEW_WORKFLOW.md` and ADR-0007.
 
 The versioned FastAPI adapter now provides private, authenticated PNG/JPEG/PDF
 review sessions. It streams uploads without retaining original filenames,
-renders PDFs into bounded private page images, keeps paths and source hashes
-server-side, serializes model operations, rebuilds image-only PDF exports, and
+renders PDFs into bounded private page images on demand, keeps paths and source
+hashes server-side, serializes model operations, rebuilds compact image-only
+PDF exports, and
 cleans session workspaces on deletion/shutdown. See `WEB_API.md`.
 
 The React client now provides:
